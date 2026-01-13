@@ -49,6 +49,37 @@
   margin-bottom: 20px;
 }
 
+.password-wrapper {
+    position: relative; /* Quan trọng: để làm mốc toạ độ cho icon */
+    width: 100%;
+}
+
+.password-wrapper input {
+    width: 100%;
+    padding-right: 40px; /* Chừa khoảng trống bên phải để chữ không đè lên icon */
+    box-sizing: border-box; /* Đảm bảo padding không làm vỡ layout */
+    /* Các style border, height cũ của bạn giữ nguyên */
+    height: 40px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    padding-left: 10px;
+}
+
+.toggle-password-icon {
+    position: absolute;
+    right: 10px; 
+    top: 50%; 
+    transform: translateY(-50%); 
+    cursor: pointer; 
+    color: #666; 
+    font-size: 18px;
+    display: flex;/
+}
+
+.toggle-password-icon:hover {
+    color: #333;
+}
+
 .form-group label {
   display: block;
   font-size: 14px;

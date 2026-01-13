@@ -2,11 +2,13 @@ import React, { useState } from 'react';
 import './login.css';
 import { loginUser } from '../services/api';
 import { useNavigate } from 'react-router-dom';
+import { FaEye, FaEyeSlash } from 'react-icons/fa';
 
 const Login = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
@@ -64,7 +66,7 @@ const Login = () => {
               type="text" 
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="Nhập username (VD: admin)"
+              placeholder="Nhập username"
               className="form-input"
               disabled={loading}
               autoFocus
@@ -82,6 +84,10 @@ const Login = () => {
               className="form-input"
               disabled={loading}
             />
+            <span 
+              className="toggle-password-icon"
+              onClick={() => setShowPassword(!showPassword)}>{showPassword ? <FaEyeSlash /> : <FaEye />}
+              </span>
           </div>
 
           {error && (
