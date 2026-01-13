@@ -1,7 +1,7 @@
 // src/pages/attendance.jsx
 import React, { useState, useEffect } from 'react';
 import './attendance.css';
-import { getAttendanceLogs } from '../services/api';
+import { getHistory } from '../services/api';
 
 const Attendance = () => {
     const [logs, setLogs] = useState([]);
@@ -15,8 +15,13 @@ const Attendance = () => {
 
     const formatTime = (isoString) => {
         if (!isoString) return "--:--";
-        const date = new Date(isoString);
-        return date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+        // Xử lý trường hợp API trả về full ISO 2023-10-10T08:00:00
+        if (isoString.includes('T')) {
+             const date = new Date(isoString);
+             return date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+        }
+        // Xử lý trường hợp API trả về chuỗi giờ thuần "08:00:00"
+        return isoString.substring(0, 5);
     };
 
     const formatDate = (dateString) => {
@@ -28,19 +33,28 @@ const Attendance = () => {
     // Hàm tự tính trạng thái dựa trên giờ vào
     const calculateStatus = (checkInIso) => {
         if (!checkInIso) return "Vắng";
-        const timePart = checkInIso.split('T')[1]; // Lấy phần 08:05:00
+        
+        let timePart = "";
+        if (checkInIso.includes('T')) {
+            timePart = checkInIso.split('T')[1]; 
+        } else {
+            timePart = checkInIso; 
+        }
+
         if (timePart > "09:00:00") return "Đi muộn";
         return "Đúng giờ";
     };
 
     useEffect(() => {
         const fetchLogs = async () => {
-            if (!currentUser.id) return;
+            if (!currentUser.id && !currentUser.user_id) return; 
+            
+            const userId = currentUser.id || currentUser.user_id;
 
             setLoading(true);
             try {
                 // 1. Gọi API lấy dữ liệu theo Tháng/Năm
-                const data = await getAttendanceLogs(currentUser.id, selectedMonth, selectedYear);
+                const data = await getHistory(userId, selectedMonth, selectedYear);
                 
                 // 2. Map dữ liệu từ Backend sang format mà Frontend đang dùng
                 const formattedData = data.map(item => ({
@@ -63,7 +77,7 @@ const Attendance = () => {
         };
 
         fetchLogs();
-    }, [selectedMonth, selectedYear, currentUser.id, currentUser.username, currentUser.full_name]);
+    }, [selectedMonth, selectedYear, currentUser.id]);
 
     
 

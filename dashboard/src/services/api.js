@@ -192,4 +192,19 @@ export const getDailyAttendance = async (workDate = '', employeeId = '') => {
     }
 };
 
-
+export const getHistory = async (userId, month, year) => {
+    try {
+        const response = await api.get('/api/v1/users/history', {
+            params: {
+                user_id: userId,
+                month: month,
+                year: year
+            }
+        });
+        return response.data;
+    } catch (error) {
+        console.error("Lỗi lấy lịch sử:", error);
+        return [];
+    }
+};
+export default api;
