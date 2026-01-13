@@ -9,9 +9,8 @@ const api = axios.create({
     },
 });
 
-// Helper: Tự động thêm Token vào header nếu đã đăng nhập
 api.interceptors.request.use((config) => {
-    const user = JSON.parse(localStorage.getItem('user')); // Giả sử bạn lưu user + token ở đây
+    const user = JSON.parse(localStorage.getItem('user'));
     if (user && user.access_token) {
         config.headers.Authorization = `Bearer ${user.access_token}`;
     }
@@ -42,13 +41,12 @@ export const loginUser = async (credentials) => {
 };
 // ==========================================
 // 2. EMPLOYEE MANAGEMENT (Quản lý nhân viên)
-// ==========================================
+// =========================================
 
 // Lấy danh sách nhân viên
-// Lưu ý: Backend cần có API GET /employees. Nếu chưa có, bạn cần bổ sung vào FastAPI.
 export const getEmployees = async () => {
     try {
-        const response = await api.get('/employees'); 
+        const response = await api.get(`/api/v1/employees`); 
         return response.data;
     } catch (error) {
         console.error("Lỗi lấy danh sách NV:", error);
@@ -70,7 +68,7 @@ export const createEmployee = async (newEmployee) => {
             start_date: newEmployee.startDate || new Date().toISOString().split('T')[0]
         };
 
-        const response = await api.post('/api/v1/users/employees', payload);
+        const response = await api.post('/api/v1/employees', payload);
         return response.data;
     } catch (error) {
         console.error("Lỗi tạo NV:", error);
@@ -92,7 +90,7 @@ export const updateEmployee = async (empCode, updateData) => {
             email: updateData.email
         };
 
-        const response = await api.put(`/api/v1/users/employees/${empCode}`, payload);
+        const response = await api.put(`/api/v1/employees/${empCode}`, payload);
         return { success: true, data: response.data };
     } catch (error) {
         console.error("Lỗi cập nhật NV:", error);
@@ -104,7 +102,7 @@ export const updateEmployee = async (empCode, updateData) => {
 // Backend: DELETE /employees/{emp_code}
 export const deleteEmployee = async (empCode) => {
     try {
-        await api.delete(`/api/v1/users/employees/${empCode}`);
+        await api.delete(`/api/v1/employees/${empCode}`);
         return { success: true };
     } catch (error) {
         console.error("Lỗi xóa NV:", error);
@@ -128,11 +126,30 @@ export const getProfile = async (userId) => {
 // 3. DEVICES & FINGERPRINTS (Vân tay & Cửa)
 // ==========================================
 
-// Thiết lập vân tay (Enroll)
-// Backend: POST /api/v1/devices/devices/{device_id}/fingerprints/enroll
-export const setupFingerprint = async (deviceId = "device_01") => {
+const DEFAULT_DEVICE_ID = "esp32-EC:E3:34:BF:CD:C0";
+// Lấy trạng thái cửa
+export const getDeviceStatus = async (deviceId = DEFAULT_DEVICE_ID) => {
     try {
-        // API này gửi lệnh cho ESP32 bắt đầu quét
+        const response = await api.get(`/api/v1/devices/devices/${deviceId}/status`);
+        return response.data;
+    } catch (error) {
+        console.error("Lỗi lấy trạng thái cửa:", error);
+        throw error;
+    }
+};
+export const openDoor = async (deviceId = DEFAULT_DEVICE_ID) => {
+    try {
+        const response = await api.post(`/api/v1/devices/devices/${deviceId}/door/open`);
+        return { success: true, data: response.data };
+    } catch (error) {
+        console.error("Lỗi mở cửa:", error);
+        throw error;
+    }
+};
+// Thiết lập vân tay
+export const setupFingerprint = async (deviceId = DEFAULT_DEVICE_ID) => {
+    try {
+        
         const response = await api.post(`/api/v1/devices/devices/${deviceId}/fingerprints/enroll`);
         return { success: true, message: "Vui lòng đặt tay lên cảm biến...", data: response.data };
     } catch (error) {
@@ -142,8 +159,7 @@ export const setupFingerprint = async (deviceId = "device_01") => {
 };
 
 // Xóa vân tay
-// Backend: DELETE /api/v1/devices/devices/{device_id}/fingerprints/{finger_id}
-export const deleteFingerprint = async (fingerId, deviceId = "device_01") => {
+export const deleteFingerprint = async (fingerId, deviceId = DEFAULT_DEVICE_ID) => {
     try {
         await api.delete(`/api/v1/devices/devices/${deviceId}/fingerprints/${fingerId}`);
         return { success: true };
@@ -153,38 +169,26 @@ export const deleteFingerprint = async (fingerId, deviceId = "device_01") => {
     }
 };
 
-// Mở cửa / Đóng cửa
-// Backend: POST /api/v1/devices/devices/{device_id}/door/open
-export const toggleDoorCommand = async (action, deviceId = "device_01") => {
-    if (action !== 'open') return; // API hiện tại chỉ hỗ trợ lệnh open
-
-    try {
-        await api.post(`/api/v1/devices/devices/${deviceId}/door/open`);
-        return { success: true, status: 'unlocked' };
-    } catch (error) {
-        console.error("Lỗi mở cửa:", error);
-        return { success: false };
-    }
-};
 
 // ==========================================
 // 4. ATTENDANCE (Chấm công)
 // ==========================================
 
-// Lấy lịch sử
-// Backend: GET /history?user_id=...&month=...&year=...
-export const getAttendanceLogs = async (userId, month, year) => {
+// Lấy lịch sử chấm công
+export const getAttendanceLogs = async (workDate = '', employeeId = '') => {
     try {
-        const response = await api.get('/history', {
+        const response = await api.get('/api/v1/employees/daily-attendance', {
             params: {
-                user_id: userId,
-                month: month,
-                year: year
+                work_date: workDate,
+                employee_id: employeeId,
             }
         });
-        return response.data; // Trả về mảng log thật từ DB
+        return response.data;
     } catch (error) {
         console.error("Lỗi lấy log chấm công:", error);
         return [];
     }
 };
+
+export default api;
+

@@ -3,14 +3,15 @@ import './dashboard.css';
 import { useNavigate } from 'react-router-dom';
 import { FaUserFriends, FaUserCheck, FaUserTimes, FaClock, FaWifi, FaLock, FaUnlock, FaDoorOpen } from 'react-icons/fa';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { getEmployees, toggleDoorCommand } from '../services/api';
+import { getEmployees, getDailyAttendance, getDeviceStatus, openDoor } from '../services/api';
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const [attendanceLogs, setAttendanceLogs] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const [doorStatus, setDoorStatus] = useState('LOCKED'); // 'locked' hoặc 'unlocked'
+  const [doorStatus, setDoorStatus] = useState('LOCKED');
+  const [deviceConnected, setDeviceConnected] = useState(false);
   const [doorLoading, setDoorLoading] = useState(false);
 
   const [stats, setStats] = useState({
@@ -37,59 +38,66 @@ const Dashboard = () => {
         }
     const fetchData = async () => {
       try {
-        const empData = await getEmployees();
-        const todayDate = new Date().toLocaleDateString('vi-VN');
+        const employees = await getEmployees();
+            const totalEmp = employees.length || 0;
 
-        // Map dữ liệu nhân viên sang dữ liệu hiển thị Dashboard
-        // (Nếu API chưa trả về giờ check-in, ta giả lập ở đây để test logic > 9:00)
-        const processedData = empData.map((emp, index) => {
-            // GIẢ LẬP GIỜ CHECK-IN ĐỂ TEST LOGIC (Xóa đoạn này nếu API đã trả về field checkIn thực tế)
-            // Logic giả lập: Người thứ 3, 7, 10... sẽ đi muộn (checkin sau 9h)
-            const isSimulatedLate = index % 3 === 0 && index !== 0; 
+            //Lấy log chấm công hôm nay
+            const today = new Date().toISOString().split('T')[0];
+            const logs = await getDailyAttendance(today);
+
+            //Xử lý dữ liệu hiển thị
+            const processedLogs = logs.map(log => {
+                const empInfo = employees.find(e => e.id === log.employee_id) || {};
+                const checkInTime = log.check_in || (log.created_at ? log.created_at.split('T')[1].split('.')[0] : null);
+                
+                return {
+                    ...log,
+                    full_name: log.full_name || empInfo.full_name || `NV #${log.employee_id}`,
+                    date: log.work_date || today,
+                    checkIn: checkInTime || '--:--',
+                    checkOut: log.check_out || '--:--',
+                    status: checkIsLate(checkInTime) ? 'Muộn' : 'Đúng giờ'
+                };
+            });
+
+            setAttendanceLogs(processedLogs);
+
+            //Tính toán thống kê
+            const presentCount = processedLogs.length;
+            const lateCount = processedLogs.filter(l => l.status === 'Muộn').length;
+            const absentCount = totalEmp > presentCount ? totalEmp - presentCount : 0;
+
+            setStats({
+                total: totalEmp,
+                present: presentCount,
+                absent: absentCount,
+                late: lateCount
+            });
+
+            // Lấy trạng thái thiết bị IoT
+            const DEVICE_ID = "esp32-EC:E3:34:BF:CD:C0"; 
+            const statusData = await getDeviceStatus(DEVICE_ID);
             
-            // Nếu muộn: random từ 09:01 đến 09:30. Nếu sớm: 07:30 - 08:59
-            const hour = isSimulatedLate ? 9 : 7 + Math.floor(Math.random() * 2); 
-            const minute = isSimulatedLate ? Math.floor(Math.random() * 30) + 1 : Math.floor(Math.random() * 60);
-            const second = Math.floor(Math.random() * 60);
+            setDeviceConnected(true);
+            if (statusData && statusData.status) {
+                setDoorStatus(statusData.status.toUpperCase());
+            }
 
-            const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}:${second.toString().padStart(2, '0')}`;
-            
-            // --- LOGIC CHÍNH: SO SÁNH THỜI GIAN ---
-            const isLate = checkIsLate(timeString);
-
-            return {
-                ...emp, // Giữ lại id, full_name, etc từ API
-                date: todayDate,
-                checkIn: timeString, // Giờ check-in
-                checkOut: '17:00:00', // Giả định giờ về
-                status: isLate ? 'Muộn' : 'Đúng giờ', // Set trạng thái dựa trên giờ
-                isAbsent: false // Giả sử đi làm đầy đủ
-            };
-        });
-
-        setAttendanceLogs(processedData);
-
-        // --- TÍNH TOÁN THỐNG KÊ DỰA TRÊN DỮ LIỆU ĐÃ XỬ LÝ ---
-        const total = empData.length;
-        const present = Math.floor(total * 0.8);
-        const late = Math.floor(present * 0.1);
-        const absent = total - present;
-        setStats({ total, present, absent, late });
-      } catch (error) {
-        console.error("Lỗi tải dữ liệu Dashboard:", error);
-      } finally {
-        setLoading(false);
-      }
+        } catch (error) {
+            console.error("Lỗi cập nhật Dashboard:", error);
+            // Nếu lỗi kết nối thiết bị thì đánh dấu offline
+            if (error.code === "ERR_NETWORK" || error.response?.status >= 500) {
+                 setDeviceConnected(false);
+            }
+        } finally {
+            setLoading(false);
+        }
     };
 
     fetchData();
+    const interval = setInterval(fetchData, 5000);
+    return () => clearInterval(interval);
   }, [navigate]);
-
-  // Dữ liệu trạng thái thiết bị (Vẫn fix cứng vì chưa có API cho ESP32)
-  const deviceStatus = {
-    isConnected: true, 
-    lastSync: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-  };
 
   // Dữ liệu biểu đồ (Vẫn giữ cố định hoặc update sau nếu có API thống kê tuần)
   const dataChart = [
@@ -101,13 +109,29 @@ const Dashboard = () => {
     { name: 'T7', present: 15, absent: 10, late: 5 },
   ];
 
+  const handlePing = async () => {
+    const DEVICE_ID = "esp32-EC:E3:34:BF:CD:C0";
+    try {
+        alert("Đang kiểm tra kết nối tới ESP32...");
+        await getDeviceStatus(DEVICE_ID);
+        setDeviceConnected(true);
+        alert("Kết nối ổn định! Thiết bị đang Online.");
+    } catch (error) {
+        console.error("Ping lỗi:", error); // Đã sửa lỗi no-unused-vars
+        setDeviceConnected(false);
+        alert("Không tìm thấy thiết bị.");
+    }
+  };
+
   const handleDoorControl = async () => {
     setDoorLoading(true);
+    const DEVICE_ID = "esp32-EC:E3:34:BF:CD:C0"; 
     
     try {
         if (doorStatus === 'LOCKED') {
             // --- QUY TRÌNH 1: MỞ CỬA ---
-            await toggleDoorCommand('open'); 
+            // Gọi API thật để mở chốt
+            await openDoor(DEVICE_ID); 
             
             // B1: Rút chốt khóa (UNLOCKED)
             setDoorStatus('UNLOCKED');
@@ -119,20 +143,15 @@ const Dashboard = () => {
             }, 2000);
 
         } else if (doorStatus === 'OPEN') {
-            // --- QUY TRÌNH 2: NGƯỜI DÙNG KHÉP CỬA LẠI ---
-            // Ở đây nút bấm đóng vai trò là "Cảm biến cửa" (Door Sensor)
-            // Khi người dùng khép cửa, cảm biến chạm nhau -> Kích hoạt chốt khóa ngay lập tức
             
-            await toggleDoorCommand('close'); // Gửi lệnh chốt khóa tới ESP32
-            
-            setDoorStatus('LOCKED'); // Khóa ngay lập tức
+            setDoorStatus('LOCKED');
             setDoorLoading(false);
         }
     } catch (error) {
-        alert("Không thể kết nối tới thiết bị!", error);
-    } finally {
+        console.error("Lỗi không kết nối:", error);
+        alert("Không thể kết nối tới thiết bị!")
         setDoorLoading(false);
-    }
+    } 
   };
 
   const renderDoorBadge = () => {
@@ -163,7 +182,7 @@ const Dashboard = () => {
     <div className="dashboard-container">
       <h1 className="page-title">📊 Tổng quan</h1>
 
-      {/* 1. Các thẻ thống kê (Dữ liệu đã tính toán từ Mock API) */}
+      {/* 1. Các thẻ thống kê */}
       <div className="stats-grid">
         <div className="stat-card blue">
           <div className="stat-icon"><FaUserFriends /></div>
@@ -224,13 +243,12 @@ const Dashboard = () => {
         {/* Trạng thái thiết bị bên phải */}
         <div className="device-status-card">
           <h3>📡 Trạng thái thiết bị</h3>
-          <div className={`status-indicator ${deviceStatus.isConnected ? 'online' : 'offline'}`}>
+          <div className={`status-indicator ${deviceConnected ? 'online' : 'offline'}`}>
             <FaWifi className="wifi-icon" />
-            <span>{deviceStatus.isConnected ? 'ESP32 Đang Online' : 'Mất kết nối'}</span>
+            <span>{deviceConnected ? 'ESP32 Đang Online' : 'Mất kết nối'}</span>
           </div>
-          <p className="last-sync">Cập nhật lần cuối: {deviceStatus.lastSync}</p>
-          <button className="btn-ping" onClick={() => alert("Đang Ping tới ESP32...")}>Kiểm tra kết nối</button>
-
+          <p className="last-sync">Cập nhật lúc: {new Date().toLocaleTimeString()}</p>
+          <button className="btn-ping" onClick={handlePing}>Kiểm tra kết nối</button>
           <div className="door-control-section">
             {renderDoorBadge()}
             <button 
