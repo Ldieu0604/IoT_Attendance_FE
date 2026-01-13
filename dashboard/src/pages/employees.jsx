@@ -86,6 +86,7 @@ const Employees = () => {
   const handleOpenEdit = (emp) => {
       setCreatedUser(null);
       setIsEditMode(true);
+      const isActive = emp.active !== undefined ? emp.active : true;
       setFormData({
           id: emp.id,
           emp_code: emp.emp_code,
@@ -96,7 +97,7 @@ const Employees = () => {
           email: emp.email || '',
           start_date: formatDateForInput(emp.start_date),
           position: emp.position,
-          active: emp.active
+          active: isActive
       });
       setShowModal(true);
   };
@@ -202,13 +203,15 @@ const Employees = () => {
             {employees.length > 0 ? employees.map((emp) => {
               const isPopoverOpen = openEmpId === emp.id;
 
+              const isActive = emp.active !== false;
+
               return (
                 <tr key={emp.id}>
                   <td>{emp.emp_code}</td>
                   <td><strong>{emp.full_name}</strong></td>
                   <td style={{color: '#64748b'}}>{emp.email || ''}</td>
                   <td>{emp.position}</td>
-                  <td><span className={`status-badge ${emp.active ? 'active' : 'inactive'}`}>{emp.active ? 'Đang làm' : 'Đã nghỉ'}</span></td>
+                  <td><span className={`status-badge ${isActive ? 'active' : 'inactive'}`}>{isActive ? 'Đang làm' : 'Đã nghỉ'}</span></td>
                   
                   <td style={{position: 'relative'}}> {/* Quan trọng cho Popover */}
                     <div className="action-buttons">

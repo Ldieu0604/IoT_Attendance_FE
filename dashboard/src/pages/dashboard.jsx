@@ -43,7 +43,7 @@ const Dashboard = () => {
 
             //Lấy log chấm công hôm nay
             const today = new Date().toISOString().split('T')[0];
-            const logs = await getDailyAttendance(today);
+            const logs = await getDailyAttendance(today, null, 0, 500);
 
             //Xử lý dữ liệu hiển thị
             const processedLogs = logs.map(log => {
