@@ -154,7 +154,7 @@ const Employees = () => {
   const handleDeleteFinger = async (empId, fingerId) => {
       if(window.confirm("Bạn có chắc chắn muốn xóa vân tay này?")) {
         try {
-          await deleteFingerprint(DEFAULT_DEVICE_ID, fingerId);
+          await deleteFingerprint(fingerId, DEFAULT_DEVICE_ID);
           await fetchData(); // Load lại list
         } catch (error) {
           alert("Lỗi xóa vân tay: " + error.message);
@@ -217,7 +217,7 @@ const Employees = () => {
                             onClick={() => handleToggleFinger(emp.id)}
                         >Vân tay</button>
 
-                        <button className="btn-action delete" onClick={() => handleDeleteEmployee(emp.id)} style={{color:'red', background:'#fee2e2'}}>Xóa</button>
+                        <button className="btn-action delete" onClick={() => handleDeleteEmployee(emp.emp_code)} style={{color:'red', background:'#fee2e2'}}>Xóa</button>
                     </div>
 
                     {/* --- POPOVER VÂN TAY--- */}
@@ -289,7 +289,7 @@ const Employees = () => {
                             <label>Mã NV (Tự tạo nếu trống)</label>
                             <input disabled={isEditMode} value={formData.emp_code} onChange={e => setFormData({...formData, emp_code: e.target.value})} placeholder="VD: 2024001" />
                         </div>
-                        
+
                         <div className="form-group">
                             <label>Giới tính <span className="req">*</span></label>
                             <select value={formData.gender} onChange={e => setFormData({...formData, gender: e.target.value})}>
