@@ -27,6 +27,9 @@ const Sidebar = () => {
         <li className={isActive('/attendance')}>
           <Link to="/attendance">📅 Chấm công</Link>
         </li>
+        <li className={isActive('/payroll')}>
+          <Link to="/payroll">💰 Bảng lương</Link>
+        </li>
         <li style={{ marginTop: 'auto', borderTop: '1px solid #334155' }}>
           <a href="#" onClick={handleLogout} style={{ color: '#ef4444' }}>
             🚪 Đăng xuất

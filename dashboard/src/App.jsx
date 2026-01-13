@@ -6,6 +6,7 @@ import Login from './pages/login';
 import Employees from './pages/employees';    
 import Dashboard from './pages/dashboard'; 
 import Attendance from './pages/attendance';
+import Payroll from './pages/payroll';
 
 const MainLayout = () => {
   return (
@@ -22,7 +23,7 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* --- TRANG LOGIN (Không có Sidebar) --- */}
+        {/* --- TRANG LOGIN --- */}
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/login" element={<Login />} />
 
@@ -31,6 +32,7 @@ function App() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/employees" element={<Employees />} />
           <Route path="/attendance" element={<Attendance />} />
+          <Route path="/payroll" element={<Payroll />} />
         </Route>
 
       </Routes>

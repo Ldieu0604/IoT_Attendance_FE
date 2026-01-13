@@ -1,0 +1,48 @@
+/* Style riêng cho các vị trí công việc để dễ nhìn */
+.badge-pos {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+}
+.badge-pos.Manager { background: #fee2e2; color: #991b1b; }
+.badge-pos.Dev_Mobile { background: #dbeafe; color: #1e40af; }
+.badge-pos.Intern { background: #f3f4f6; color: #374151; }
+.badge-pos.Tester { background: #fef3c7; color: #92400e; }
+
+/* Căn chỉnh cột số liệu */
+.text-center { text-align: center; }
+.text-right { text-align: right; }
+
+.total-cell {
+    font-weight: bold;
+    color: #059669; /* Màu xanh lá đậm */
+    font-size: 1.1em;
+}
+
+.btn-export {
+    background-color: #10b981;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+}
+.btn-export:hover {
+    background-color: #059669;
+}
+
+.filter-group {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.filter-group select {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    outline: none;
+    cursor: pointer;
+}
