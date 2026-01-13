@@ -27,7 +27,7 @@ const Employees = () => {
       phone_number: '',
       email: '',
       start_date: '',
-      position: 'Kỹ thuật',
+      position: 'Dev Mobile',
       active: true
   });
 
@@ -73,7 +73,7 @@ const Employees = () => {
           phone_number: '',
           email: '',
           start_date: new Date().toISOString().split('T')[0], // Mặc định hôm nay
-          position: 'Kỹ thuật',
+          position: 'Dev Mobile',
           active: true
       });
       setShowModal(true);
@@ -306,11 +306,14 @@ const Employees = () => {
                         <div className="form-group">
                             <label>Chức vụ <span className="req">*</span> </label>
                             <select value={formData.position} onChange={e => setFormData({...formData, position: e.target.value})}>
-                                <option>Kỹ thuật</option>
-                                <option>Kế toán</option>
-                                <option>Nhân sự</option>
-                                <option>Bảo vệ</option>
+                                <option>Dev Mobile</option>
+                                <option>Intern</option>
+                                <option>Junior Developer</option>
+                                <option>Manager</option>
                                 <option>Marketing</option>
+                                <option>Tester</option>
+                                <option>Project Manager</option>
+                                <option>Senior Developer</option>
                             </select>
                         </div>
 
