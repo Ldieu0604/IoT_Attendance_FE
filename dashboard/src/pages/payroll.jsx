@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './payroll.css';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 // --- 1. ĐƯA DỮ LIỆU MOCK VÀ HÀM TÍNH TOÁN RA NGOÀI COMPONENT ---
 // Việc này giúp chúng trở thành biến tĩnh, React sẽ không bắt bẻ trong useEffect nữa.
@@ -93,6 +95,44 @@ const Payroll = () => {
     fetchPayrollData();
   }, [month, year]);
 
+  const removeVietnameseTones = (str) => {
+    return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+              .replace(/đ/g, 'd').replace(/Đ/g, 'D');
+}
+const formatCurrencyPDF = (amount) => {
+    return amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") + " VND";
+};
+  // --- 3. HÀM XỬ LÝ XUẤT PDF ---
+  const handleExportPDF = () => {
+    const doc = new jsPDF();
+
+    // Tiêu đề file PDF (Dùng không dấu để tránh lỗi font)
+    doc.text(`Bang Luong Thang ${month}/${year}`, 14, 15);
+
+    // Tạo bảng
+    autoTable(doc, {
+      startY: 20,
+      head: [['Ma NV', 'Ho Ten', 'Chuc Vu', 'Ngay Cong', 'Tang Ca (h)', 'Luong Cung', 'Thuong', 'Thuc Nhan']],
+      
+      // Định nghĩa dữ liệu (Body)
+      body: payrollList.map(emp => [
+        emp.emp_code,
+        removeVietnameseTones(emp.full_name),
+        emp.position,
+        `${emp.work_days}/30`,
+        emp.overtime_hours,
+        formatCurrencyPDF(emp.monthly_salary), 
+        formatCurrencyPDF(emp.bonus_salary),
+        formatCurrencyPDF(emp.total_salary)
+      ]),
+      
+      theme: 'grid',
+      headStyles: { fillColor: [22, 160, 133] },
+    });
+
+    doc.save(`Bang_Luong_T${month}_${year}.pdf`);
+  };
+
   return (
     <div className="page-container">
       <div className="page-header">
@@ -108,7 +148,7 @@ const Payroll = () => {
             <option value="2025">2025</option>
             <option value="2026">2026</option>
           </select>
-          <button className="btn-export">🖨️ Xuất Excel</button>
+          <button className="btn-export" onClick={handleExportPDF}>🖨️ Xuất PDF</button>
         </div>
       </div>
 
