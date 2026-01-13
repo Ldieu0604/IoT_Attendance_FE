@@ -192,5 +192,4 @@ export const getDailyAttendance = async (workDate = '', employeeId = '') => {
     }
 };
 
-export default api;
 
