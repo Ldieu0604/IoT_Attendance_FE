@@ -141,7 +141,7 @@ const Employees = () => {
   const handleStartScan = async (empId) => {
     setScanStep(1); 
     try {
-      await setupFingerprint(DEFAULT_DEVICE_ID,empId); 
+      await setupFingerprint(DEFAULT_DEVICE_ID, empId); 
       setScanStep(2); 
       await fetchData(); 
     } catch (error) {
@@ -151,7 +151,7 @@ const Employees = () => {
     }
   };
 
-  const handleDeleteFinger = async (empId, fingerId) => {
+  const handleDeleteFinger = async (fingerId, DEFAULT_DEVICE_ID) => {
       if(window.confirm("Bạn có chắc chắn muốn xóa vân tay này?")) {
         try {
           await deleteFingerprint(fingerId, DEFAULT_DEVICE_ID);

@@ -147,10 +147,12 @@ export const openDoor = async (deviceId = DEFAULT_DEVICE_ID) => {
     }
 };
 // Thiết lập vân tay
-export const setupFingerprint = async (deviceId = DEFAULT_DEVICE_ID) => {
+export const setupFingerprint = async (deviceId = DEFAULT_DEVICE_ID, empId) => {
     try {
         
-        const response = await api.post(`/api/v1/devices/devices/${deviceId}/fingerprints/enroll`);
+        const response = await api.post(`/api/v1/devices/devices/${deviceId}/fingerprints/enroll`, {
+            employee_id: empId
+        });
         return { success: true, message: "Vui lòng đặt tay lên cảm biến...", data: response.data };
     } catch (error) {
         console.error("Lỗi enroll vân tay:", error);
@@ -175,7 +177,7 @@ export const deleteFingerprint = async (fingerId, deviceId = DEFAULT_DEVICE_ID) 
 // ==========================================
 
 // Lấy lịch sử chấm công
-export const getAttendanceLogs = async (workDate = '', employeeId = '') => {
+export const getDailyAttendance = async (workDate = '', employeeId = '') => {
     try {
         const response = await api.get('/api/v1/employees/daily-attendance', {
             params: {
