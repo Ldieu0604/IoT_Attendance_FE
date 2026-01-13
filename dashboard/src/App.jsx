@@ -2,7 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import './App.css';
 import Sidebar from './components/sideBar';   
-import Login from './pages/Login';           
+import Login from './pages/login';           
 import Employees from './pages/employees';    
 import Dashboard from './pages/dashboard'; 
 import Attendance from './pages/attendance';
