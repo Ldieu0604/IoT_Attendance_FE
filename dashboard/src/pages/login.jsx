@@ -8,7 +8,6 @@ const Login = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
@@ -84,10 +83,6 @@ const Login = () => {
               className="form-input"
               disabled={loading}
             />
-            <span 
-              className="toggle-password-icon"
-              onClick={() => setShowPassword(!showPassword)}>{showPassword ? <FaEyeSlash /> : <FaEye />}
-              </span>
           </div>
 
           {error && (
