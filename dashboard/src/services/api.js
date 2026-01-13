@@ -61,14 +61,14 @@ export const createEmployee = async (newEmployee) => {
             emp_code: newEmployee.empCode,
             full_name: newEmployee.fullName,
             gender: newEmployee.gender,
-            dob: newEmployee.dob, // YYYY-MM-DD
+            dob: newEmployee.dob,
             position: newEmployee.position,
             phone_number: newEmployee.phoneNumber,
             email: newEmployee.email,
             start_date: newEmployee.startDate || new Date().toISOString().split('T')[0]
         };
 
-        const response = await api.post('/api/v1/employees', payload);
+        const response = await api.post('/api/v1/employees/', payload);
         return response.data;
     } catch (error) {
         console.error("Lỗi tạo NV:", error);
