@@ -46,7 +46,7 @@ export const loginUser = async (credentials) => {
 // Lấy danh sách nhân viên
 export const getEmployees = async () => {
     try {
-        const response = await api.get(`/api/v1/employees`); 
+        const response = await api.get(`/api/v1/employees/`); 
         return response.data;
     } catch (error) {
         console.error("Lỗi lấy danh sách NV:", error);
