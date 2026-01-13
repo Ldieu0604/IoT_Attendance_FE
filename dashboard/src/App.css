@@ -1,0 +1,39 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: sans-serif;
+  background-color: #f5f6fa; /* Màu nền sáng */
+}
+
+/* Class cho phần nội dung chính */
+.main-content {
+  margin-left: 250px; /* QUAN TRỌNG: Đẩy nội dung sang phải 250px để né Sidebar */
+  padding: 20px;      /* Thêm khoảng cách lề cho đẹp */
+  min-height: 100vh;  /* Chiều cao tối thiểu bằng màn hình */
+  transition: margin-left 0.3s ease; /* Hiệu ứng mượt nếu sau này làm menu đóng mở */
+}
+.dashboard-layout {
+  display: flex;       /* Xếp các phần tử nằm ngang */
+  height: 100vh;       /* Chiều cao bằng 100% màn hình */
+  overflow: hidden;    /* Ẩn thanh cuộn thừa của body */
+}
+
+.sidebar {
+  width: 260px;        /* Chiều rộng cố định cho menu trái */
+  flex-shrink: 0;      /* Không cho sidebar bị co lại */
+  background-color: #1e293b; /* Màu nền tối giống ảnh của bạn */
+  color: white;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.main-content {
+  flex: 1;             /* Tự động chiếm hết khoảng trống còn lại bên phải */
+  overflow-y: auto;    /* Cho phép cuộn dọc nếu bảng quá dài */
+  background-color: #f8fafc;
+  position: relative;  /* Để các popup con (nếu có) định vị theo nó */
+}
