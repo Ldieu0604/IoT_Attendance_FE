@@ -77,6 +77,7 @@ const Attendance = () => {
         };
 
         fetchLogs();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedMonth, selectedYear, currentUser.id]);
 
     

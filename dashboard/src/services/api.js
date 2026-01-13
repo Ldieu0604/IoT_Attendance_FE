@@ -177,13 +177,17 @@ export const deleteFingerprint = async (fingerId, deviceId = DEFAULT_DEVICE_ID) 
 // ==========================================
 
 // Lấy lịch sử chấm công
-export const getDailyAttendance = async (workDate = '', employeeId = '') => {
+export const getDailyAttendance = async (workDate = '', employeeId = null) => {
     try {
+        // Tạo object params
+        const params = {};
+        
+        // Chỉ thêm vào params nếu có dữ liệu thực sự
+        if (workDate) params.work_date = workDate;
+        if (employeeId) params.employee_id = employeeId;
+
         const response = await api.get('/api/v1/employees/daily-attendance', {
-            params: {
-                work_date: workDate,
-                employee_id: employeeId,
-            }
+            params: params 
         });
         return response.data;
     } catch (error) {

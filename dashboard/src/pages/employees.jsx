@@ -117,6 +117,8 @@ const Employees = () => {
 
               if (newUser) {
                   setCreatedUser(newUser); 
+              } else {
+                  alert("Thêm nhân viên thành công!");
               }
           }
           await fetchData();
@@ -151,7 +153,7 @@ const Employees = () => {
     }
   };
 
-  const handleDeleteFinger = async (fingerId, DEFAULT_DEVICE_ID) => {
+  const handleDeleteFinger = async (empId, fingerId) => {
       if(window.confirm("Bạn có chắc chắn muốn xóa vân tay này?")) {
         try {
           await deleteFingerprint(fingerId, DEFAULT_DEVICE_ID);
@@ -279,16 +281,13 @@ const Employees = () => {
                             <label>Họ và Tên <span className="req">*</span></label>
                             <input required value={formData.full_name} onChange={e => setFormData({...formData, full_name: e.target.value})} placeholder="Nguyễn Văn A" />
                         </div>
+
                         {isEditMode && (
                           <div className="form-group">
                                 <label>Mã NV</label>
-                                <input disabled value={formData.emp_code} style={{background: '#f1f5f9'}}/>
+                                <input disabled value={formData.emp_code} style={{background: '#f1f5f9', cursor: 'not-allowed'}}/>
                             </div>
                         )}
-                         <div className="form-group">
-                            <label>Mã NV (Tự tạo nếu trống)</label>
-                            <input disabled={isEditMode} value={formData.emp_code} onChange={e => setFormData({...formData, emp_code: e.target.value})} placeholder="VD: 2024001" />
-                        </div>
 
                         <div className="form-group">
                             <label>Giới tính <span className="req">*</span></label>
