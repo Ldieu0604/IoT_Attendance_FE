@@ -266,7 +266,7 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* 3. Danh sách hoạt động gần đây (Dữ liệu mapped từ Employees) */}
+      {/* 3. Danh sách hoạt động gần đây */}
       <div className="recent-activity">
         <h3>⏱️ Hoạt động gần đây</h3>
         {attendanceLogs.length > 0 ? (

@@ -10,6 +10,7 @@ import {
 } from '../services/api';
 
 const Employees = () => {
+  const DEFAULT_DEVICE_ID = "esp32-EC:E3:34:BF:CD:C0";
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true); 
   
@@ -21,6 +22,7 @@ const Employees = () => {
   // Dữ liệu Form
   const [formData, setFormData] = useState({
       id: null,
+      emp_code: '',
       full_name: '',
       gender: 'Nam',
       dob: '',
@@ -67,6 +69,7 @@ const Employees = () => {
       setIsEditMode(false);
       setFormData({
           id: null,
+          emp_code: '',
           full_name: '',
           gender: 'Nam',
           dob: '',
@@ -85,6 +88,7 @@ const Employees = () => {
       setIsEditMode(true);
       setFormData({
           id: emp.id,
+          emp_code: emp.emp_code,
           full_name: emp.full_name,
           gender: emp.gender || 'Nam',
           dob: emp.dob || '',
@@ -103,7 +107,7 @@ const Employees = () => {
       try {
           if (isEditMode) {
               // --- UPDATE ---
-              await updateEmployee(formData.id, formData);
+              await updateEmployee(formData.emp_code, formData);
               alert("Cập nhật thành công!");
           } else {
               // --- CREATE ---
@@ -116,7 +120,8 @@ const Employees = () => {
               }
           }
           await fetchData();
-          setShowModal(false);
+          if(isEditMode) setShowModal(false); 
+          else if(!createdUser) setShowModal(false);
       } catch (error) {
           console.error(error);
           alert("Có lỗi xảy ra, vui lòng thử lại." + (error.response?.data?.message || error.message));
@@ -136,7 +141,7 @@ const Employees = () => {
   const handleStartScan = async (empId) => {
     setScanStep(1); 
     try {
-      await setupFingerprint(empId); 
+      await setupFingerprint(DEFAULT_DEVICE_ID,empId); 
       setScanStep(2); 
       await fetchData(); 
     } catch (error) {
@@ -149,7 +154,7 @@ const Employees = () => {
   const handleDeleteFinger = async (empId, fingerId) => {
       if(window.confirm("Bạn có chắc chắn muốn xóa vân tay này?")) {
         try {
-          await deleteFingerprint(empId, fingerId);
+          await deleteFingerprint(DEFAULT_DEVICE_ID, fingerId);
           await fetchData(); // Load lại list
         } catch (error) {
           alert("Lỗi xóa vân tay: " + error.message);
@@ -157,10 +162,10 @@ const Employees = () => {
       }
   };
 
-  const handleDeleteEmployee = async (id) => {
+  const handleDeleteEmployee = async (empCode) => {
     if (window.confirm("Bạn chắc chắn muốn xóa nhân viên này?")){
     try {
-          await deleteEmployee(id); 
+          await deleteEmployee(empCode); 
           await fetchData();
       } catch (error) {
           alert("Lỗi xóa nhân viên: " + error.message);
@@ -261,7 +266,7 @@ const Employees = () => {
       </div> 
 
       {/* --- MODAL FORM THÊM / SỬA --- */}
-      {showModal && (
+      {showModal && !createdUser && (
         <div className="modal-overlay">
             <div className="modal-content">
                 <div className="modal-header">
@@ -273,6 +278,16 @@ const Employees = () => {
                         <div className="form-group full-width">
                             <label>Họ và Tên <span className="req">*</span></label>
                             <input required value={formData.full_name} onChange={e => setFormData({...formData, full_name: e.target.value})} placeholder="Nguyễn Văn A" />
+                        </div>
+                        {isEditMode && (
+                          <div className="form-group">
+                                <label>Mã NV</label>
+                                <input disabled value={formData.emp_code} style={{background: '#f1f5f9'}}/>
+                            </div>
+                        )}
+                         <div className="form-group">
+                            <label>Mã NV (Tự tạo nếu trống)</label>
+                            <input disabled={isEditMode} value={formData.emp_code} onChange={e => setFormData({...formData, emp_code: e.target.value})} placeholder="VD: 2024001" />
                         </div>
                         
                         <div className="form-group">
