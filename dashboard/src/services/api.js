@@ -100,7 +100,6 @@ export const updateEmployee = async (empCode, updateData) => {
 };
 
 // Xóa nhân viên
-// Backend: DELETE /employees/{emp_code}
 export const deleteEmployee = async (empCode) => {
     try {
         await api.delete(`/api/v1/users/employees/${empCode}/`);
@@ -147,6 +146,18 @@ export const openDoor = async (deviceId = DEFAULT_DEVICE_ID) => {
         throw error;
     }
 };
+//check trạng thái enroll
+export const checkEnrollStatus = async (deviceId, fingerprintId) => {
+    try {
+        // Lưu ý: Đường dẫn theo yêu cầu của bạn: /api/v1/devices/{deviceId}/...
+        const response = await api.get(`/api/v1/devices/${deviceId}/fingerprints/${fingerprintId}/enroll-status`);
+        return response.data;
+    } catch (error) {
+        console.error("Lỗi check status:", error);
+        return { status: 'failed', message: error.message };
+    }
+};
+
 // Thiết lập vân tay
 export const setupFingerprint = async (deviceId = DEFAULT_DEVICE_ID, empId) => {
     try {
@@ -154,9 +165,34 @@ export const setupFingerprint = async (deviceId = DEFAULT_DEVICE_ID, empId) => {
         const response = await api.post(`/api/v1/devices/${deviceId}/fingerprints/enroll`, {
             employee_id: empId
         });
-        return { success: true, message: "Vui lòng đặt tay lên cảm biến...", data: response.data };
+        const fingerId = response.data.finger_id || response.data.id; 
+
+        if (!fingerId) {
+            throw new Error("Không lấy được ID vân tay từ Backend.");
+        }
+
+        console.log("Bắt đầu quét cho Finger ID:", fingerId);
+        const maxRetries = 30;
+        for (let i = 0; i < maxRetries; i++) {
+            // Chờ 1 giây trước mỗi lần gọi
+            await new Promise(resolve => setTimeout(resolve, 2000));
+
+            const statusRes = await checkEnrollStatus(deviceId, fingerId);
+            const status = statusRes.status; // Giả sử backend trả về trường 'status'
+
+            console.log(`Lần ${i+1}: Trạng thái ${status}`);
+
+            if (status === 'success' || status === 'ok' || status === 'completed') {
+                return { success: true, message: "Đăng ký vân tay thành công!", data: statusRes };
+            }
+
+            if (status === 'failed' || status === 'error' || status === 'timeout') {
+                throw new Error(statusRes.message || "Quét vân tay thất bại.");
+            }
+        }
+        throw new Error("Quá thời gian chờ. Vui lòng thử lại.");
     } catch (error) {
-        console.error("Lỗi enroll vân tay:", error);
+        console.error("Lỗi quy trình vân tay:", error);
         throw error;
     }
 };
