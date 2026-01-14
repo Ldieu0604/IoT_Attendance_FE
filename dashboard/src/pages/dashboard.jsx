@@ -77,7 +77,21 @@ const Dashboard = () => {
             });
 
             const chartRes = await getDashboardStats();
+            const rawData = Array.isArray(chartRes) ? chartRes : (chartRes?.data || []);
+            console.log("Dữ liệu biểu đồ từ API:", rawData);
+            const mappedChartData = rawData.map(item => ({
+            // 1. Tạo trường 'name' cho trục X
+            // API có thể trả về 'date', 'day', 'work_date'... ta map hết về 'name'
+            name: item.name || item.day_name || item.date || item.work_date || 'N/A',
+            
+            // 2. Ép kiểu về Số (Number) để vẽ cột (tránh lỗi nếu API trả về string "5")
+            // Map các trường tương ứng từ API về tên chuẩn: present, late, absent
+            present: Number(item.present || item.total_present || item.di_lam || 0),
+            late: Number(item.late || item.total_late || item.di_muon || 0),
+            absent: Number(item.absent || item.total_absent || item.vang || 0)
+        }));
 
+        setChartData(mappedChartData);
             if (chartRes && Array.isArray(chartRes)) {
             setChartData(chartRes);
         } else if (chartRes && chartRes.data && Array.isArray(chartRes.data)) {
