@@ -81,13 +81,17 @@ const Dashboard = () => {
             console.log("Dữ liệu biểu đồ từ API:", rawData);
 
             const formattedChartData = rawData.map(item => ({
-            // Trục X: Thử lấy các trường tên phổ biến
-            name: item.name || item.day_name || item.date || item.work_date || 'Ngày',
+            // 1. Trục X: API thường trả về 'date' hoặc 'work_date'
+            name: item.date || item.work_date || item.day_name || 'Ngày',
             
-            // Các cột: Ép về kiểu Số (Number) để Recharts vẽ được
-            present: Number(item.present || item.total_present || item.di_lam || 0),
-            late: Number(item.late || item.total_late || item.di_muon || 0),
-            absent: Number(item.absent || item.total_absent || item.vang || 0)
+            // 2. Cột Đi làm (Xanh): SWAGGER TRẢ VỀ 'on_time' -> Map sang 'present'
+            present: Number(item.on_time || 0), 
+            
+            // 3. Cột Đi muộn (Vàng): SWAGGER TRẢ VỀ 'late'
+            late: Number(item.late || 0),
+            
+            // 4. Cột Vắng (Đỏ): SWAGGER TRẢ VỀ 'absent'
+            absent: Number(item.absent || 0)
         }));
 
         setChartData(formattedChartData);
