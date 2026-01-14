@@ -13,8 +13,9 @@ const Employees = () => {
   const DEFAULT_DEVICE_ID = "esp32-EC:E3:34:BF:CD:C0";
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true); 
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
-  // --- STATE CHO MODAL FORM (THAY VÌ INLINE EDIT) ---
+  // --- STATE CHO MODAL FORM ---
   const [showModal, setShowModal] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [createdUser, setCreatedUser] = useState(null); // Lưu thông tin acc vừa tạo để hiển thị
@@ -104,7 +105,9 @@ const Employees = () => {
 
   // Submit form (Chung cho cả Thêm và Sửa)
   const handleSubmit = async (e) => {
-      e.preventDefault();
+      if (e) e.preventDefault();
+      if (isSubmitting) return;
+      setIsSubmitting(true);
       try {
           if (isEditMode) {
               // --- UPDATE ---
@@ -128,6 +131,8 @@ const Employees = () => {
       } catch (error) {
           console.error(error);
           alert("Có lỗi xảy ra, vui lòng thử lại." + (error.response?.data?.message || error.message));
+      } finally {
+          setIsSubmitting(false);
       }
   };
 
@@ -278,7 +283,7 @@ const Employees = () => {
                     <h3>{isEditMode ? 'Cập nhật thông tin' : 'Thêm nhân viên mới'}</h3>
                     <button className="btn-close" onClick={() => setShowModal(false)}>×</button>
                 </div>
-                <form onSubmit={handleSubmit}>
+                <form>
                     <div className="form-grid">
                         <div className="form-group full-width">
                             <label>Họ và Tên <span className="req">*</span></label>
@@ -347,7 +352,15 @@ const Employees = () => {
                     
                     <div className="modal-footer">
                         <button type="button" className="btn-cancel-modal" onClick={() => setShowModal(false)}>Hủy bỏ</button>
-                        <button type="submit" className="btn-save-modal">Lưu thông tin</button>
+                        <button 
+                            type="button" 
+                            onClick={handleSubmit}
+                            className="btn-save-modal"
+                            disabled={isSubmitting}
+                            style={{ opacity: isSubmitting ? 0.7 : 1, cursor: isSubmitting ? 'not-allowed' : 'pointer' }}
+                        >
+                             {isSubmitting ? 'Đang lưu...' : 'Lưu thông tin'}
+                        </button>
                     </div>
                 </form>
             </div>
