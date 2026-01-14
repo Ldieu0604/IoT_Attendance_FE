@@ -303,24 +303,29 @@ export const getHistory = async (userId, month, year) => {
 
 export const getSalaryConfigs = async (year, month) => {
     try {
-        // Swagger: GET /api/v1/employees/salary?year=2026&month=1
         const response = await api.get('/api/v1/employees/salary', {
-            params: {
-                year: year,
-                month: month
-            }
+            params: { year, month }
         });
-        
-        // Kiểm tra dữ liệu trả về
+
+        console.log("DEBUG API Salary:", response.data); 
+
         if (Array.isArray(response.data)) {
             return response.data;
-        } 
-        // Trường hợp backend trả về object bọc ngoài (VD: { data: [...] })
-        else if (response.data && Array.isArray(response.data.data)) {
+        }
+
+        if (response.data && Array.isArray(response.data.data)) {
             return response.data.data;
         }
 
-        console.warn("API lương trả về định dạng lạ:", response.data);
+        if (response.data && Array.isArray(response.data.employees)) {
+            return response.data.employees;
+        }
+    
+        if (response.data && Array.isArray(response.data.salary_stats)) {
+            return response.data.salary_stats;
+        }
+
+        console.warn("Không tìm thấy mảng lương trong response:", response.data);
         return [];
     } catch (error) {
         console.error("Lỗi lấy cấu hình lương:", error);
