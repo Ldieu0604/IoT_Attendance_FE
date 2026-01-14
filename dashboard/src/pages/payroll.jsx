@@ -2,104 +2,85 @@ import React, { useState, useEffect } from 'react';
 import './payroll.css';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { getEmployees, getDailyAttendance, getSalaryConfigs } from '../services/api';
+import { getEmployees, getSalaryConfigs } from '../services/api';
 
 const Payroll = () => {
   const [payrollList, setPayrollList] = useState([]);
-  const [salaryConfigs, setSalaryConfigs] = useState([]); // ✅ State lưu bảng lương từ API
+  const [salaryConfigs, setSalaryConfigs] = useState([]); 
   
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [loading, setLoading] = useState(false);
 
-  // --- 1. CÁC HÀM LOGIC ---
-  const isValidWorkDay = (inTime, outTime) => inTime && outTime && inTime <= "09:00:00" && outTime >= "17:00:00";
-  const isOTDay = (outTime) => outTime && outTime >= "18:00:00";
+  // --- 1. CÁC HÀM HỖ TRỢ ---
   const roundToThousand = (num) => Math.round(num / 1000) * 1000;
   
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
+    const value = (amount && !isNaN(amount)) ? Number(amount) : 0;
+    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
   };
 
   // --- 2. GỌI API LẤY BẢNG LƯƠNG ---
   useEffect(() => {
       const fetchConfigs = async () => {
           const data = await getSalaryConfigs(selectedYear, selectedMonth);
-          
           if (Array.isArray(data)) {
               setSalaryConfigs(data);
           } else {
               setSalaryConfigs([]);
           }
       };
-      
       fetchConfigs();
   }, [selectedMonth, selectedYear]);
 
-
-  // --- 3. TÍNH TOÁN DỮ LIỆU ---
+  // --- 3. TÍNH TOÁN HIỂN THỊ ---
   useEffect(() => {
     const calculateSalary = async () => {
         setLoading(true);
         try {
-            const [empRes, logRes] = await Promise.all([
-                getEmployees(),
-                getDailyAttendance(null, null, 0, 3000) 
-            ]);
-
+            // Chỉ cần lấy danh sách nhân viên để hiện tên
+            const empRes = await getEmployees();
             const employees = Array.isArray(empRes) ? empRes : [];
-            const logs = Array.isArray(logRes) ? logRes : [];
 
-            // Lọc log theo tháng
-            const currentMonthLogs = logs.filter(log => {
-                if (!log.work_date) return false;
-                const d = new Date(log.work_date);
-                return d.getMonth() + 1 === parseInt(selectedMonth) && 
-                       d.getFullYear() === parseInt(selectedYear);
-            });
-
-            // Tính toán
+            // Map dữ liệu từ API Lương (salaryConfigs) vào nhân viên
             const calculatedData = employees.map(emp => {
-                const empLogs = currentMonthLogs.filter(l => l.employee_id === emp.id);
-                const validDays = empLogs.filter(log => isValidWorkDay(log.check_in, log.check_out)).length;
-                const otDays = empLogs.filter(log => isOTDay(log.check_out)).length;
+                
+                // Tìm dữ liệu lương của NV này (So khớp bằng Mã NV)
+                const salaryData = salaryConfigs.find(s => s.emp_code === emp.emp_code);
 
-                // 🔥 LOGIC QUAN TRỌNG NHẤT Ở ĐÂY 🔥
-                // Tìm cấu hình lương khớp với chức vụ nhân viên
-                const config = salaryConfigs.find(c => c.position === emp.position);
-
-                // Lấy lương từ API (Nếu ko có thì = 0)
-                const baseSalary = config ? Number(config.monthly_salary) : 0;
-                const otRate = config ? Number(config.bonus_salary) : 0;
-
-                const STANDARD_DAYS = 22; 
+                let baseSalary = 0;
                 let totalSalary = 0;
-                if (STANDARD_DAYS > 0) {
-                    const salaryPerDay = baseSalary / STANDARD_DAYS;
-                    totalSalary = (validDays * salaryPerDay) + (otDays * otRate);
+                let validDays = 0;
+                let otDays = 0;
+
+                // Nếu Backend có trả về dữ liệu lương cho nhân viên này
+                if (salaryData) {
+                    baseSalary = Number(salaryData.base_salary_fix) || 0;
+                    totalSalary = Number(salaryData.total_salary_estimated) || 0;
+                    validDays = Number(salaryData.working_days) || 0;
+                    otDays = Number(salaryData.overtime_days) || 0;
                 }
 
                 return {
                     ...emp,
                     valid_days: validDays,
                     ot_days: otDays,
-                    base_salary_display: baseSalary, // Dùng biến này để hiển thị
+                    base_salary_display: baseSalary,
                     total_salary_final: roundToThousand(totalSalary)
                 };
             });
 
             setPayrollList(calculatedData);
         } catch (error) {
-            console.error("Lỗi tính lương:", error);
+            console.error("Lỗi xử lý dữ liệu:", error);
             setPayrollList([]);
         } finally {
             setLoading(false);
         }
     };
 
-
-    calculateSalary();
-  }, [selectedMonth, selectedYear, salaryConfigs]); // Chạy lại khi config thay đổi
+        calculateSalary();
+  }, [selectedMonth, selectedYear, salaryConfigs]);
 
   // --- 4. XUẤT PDF ---
   const removeVietnameseTones = (str) => str ? str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D') : '';
@@ -155,7 +136,7 @@ const Payroll = () => {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan="7" style={{textAlign:'center', padding: 20}}>⏳ Đang tính toán...</td></tr>
+              <tr><td colSpan="7" style={{textAlign:'center', padding: 20}}>⏳ Đang tải dữ liệu...</td></tr>
             ) : (
                 payrollList.length > 0 ? (
                     payrollList.map((emp, index) => (
@@ -175,17 +156,15 @@ const Payroll = () => {
                                 {emp.ot_days > 0 ? `+${emp.ot_days}` : '-'}
                             </td>
 
-                            {/* HIỂN THỊ LƯƠNG TỪ API */}
                             <td className="text-right">{formatCurrency(emp.base_salary_display)}</td>
                             
-                            {/* TỔNG THỰC NHẬN */}
                             <td className="text-right total-cell">
                                 {formatCurrency(emp.total_salary_final)}
                             </td>
                         </tr>
                     ))
                 ) : (
-                    <tr><td colSpan="7" style={{textAlign:'center', padding: 20}}>Không có dữ liệu.</td></tr>
+                    <tr><td colSpan="7" style={{textAlign:'center', padding: 20}}>Chưa có dữ liệu.</td></tr>
                 )
             )}
           </tbody>
