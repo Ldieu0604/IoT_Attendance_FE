@@ -265,6 +265,15 @@ export const getSalaryStats = async (month, year) => {
         console.error("Lỗi lấy bảng lương:", error);
         return {employees: []};
     }
-}; 
+}; export const getDashboardStats = async () => {
+    try {
+        // Gọi API: GET /api/v1/employees/dashboard/stats
+        const response = await api.get('/api/v1/employees/dashboard/stats');
+        return response.data;
+    } catch (error) {
+        console.error("Lỗi lấy dữ liệu biểu đồ:", error);
+        return [];
+    }
+};
 
 export default api;

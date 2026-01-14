@@ -3,12 +3,14 @@ import './dashboard.css';
 import { useNavigate } from 'react-router-dom';
 import { FaUserFriends, FaUserCheck, FaUserTimes, FaClock, FaWifi, FaLock, FaUnlock, FaDoorOpen } from 'react-icons/fa';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { getEmployees, getDailyAttendance, getDeviceStatus, openDoor } from '../services/api';
+import { getEmployees, getDailyAttendance, getDeviceStatus, openDoor, getDashboardStats } from '../services/api';
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const [attendanceLogs, setAttendanceLogs] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  const [chartData, setChartData] = useState([]);
 
   const [doorStatus, setDoorStatus] = useState('LOCKED');
   const [deviceConnected, setDeviceConnected] = useState(false);
@@ -39,16 +41,16 @@ const Dashboard = () => {
     const fetchData = async () => {
       try {
         const employees = await getEmployees();
-            const totalEmp = employees.length || 0;
+        const totalEmp = employees.length || 0;
 
             //Lấy log chấm công hôm nay
-            const today = new Date().toISOString().split('T')[0];
-            const logs = await getDailyAttendance(today, null, 0, 500);
+        const today = new Date().toISOString().split('T')[0];
+        const logs = await getDailyAttendance(today, null, 0, 500);
 
             //Xử lý dữ liệu hiển thị
-            const processedLogs = logs.map(log => {
-                const empInfo = employees.find(e => e.id === log.employee_id) || {};
-                const checkInTime = log.check_in || (log.created_at ? log.created_at.split('T')[1].split('.')[0] : null);
+        const processedLogs = logs.map(log => {
+              const empInfo = employees.find(e => e.id === log.employee_id) || {};
+              const checkInTime = log.check_in || (log.created_at ? log.created_at.split('T')[1].split('.')[0] : null);
                 
                 return {
                     ...log,
@@ -73,6 +75,18 @@ const Dashboard = () => {
                 absent: absentCount,
                 late: lateCount
             });
+
+            const chartRes = await getDashboardStats();
+
+            if (chartRes && Array.isArray(chartRes)) {
+            setChartData(chartRes);
+        } else if (chartRes && chartRes.data && Array.isArray(chartRes.data)) {
+            // Trường hợp API trả về dạng { status: 'success', data: [...] }
+            setChartData(chartRes.data);
+        } else {
+            // Nếu API chưa có dữ liệu, dùng mảng rỗng hoặc dữ liệu mẫu tạm thời
+            setChartData([]);
+        }
 
             // Lấy trạng thái thiết bị IoT
             const DEVICE_ID = "esp32-EC:E3:34:BF:CD:C0"; 
@@ -102,16 +116,6 @@ const Dashboard = () => {
     const interval = setInterval(fetchData, 5000);
     return () => clearInterval(interval);
   }, [navigate]);
-
-  // Dữ liệu biểu đồ (Vẫn giữ cố định hoặc update sau nếu có API thống kê tuần)
-  const dataChart = [
-    { name: 'T2', present: 20, absent: 5, late: 2 },
-    { name: 'T3', present: 22, absent: 3, late: 1 },
-    { name: 'T4', present: 18, absent: 7, late: 3 },
-    { name: 'T5', present: 24, absent: 1, late: 0 },
-    { name: 'T6', present: 21, absent: 4, late: 2 },
-    { name: 'T7', present: 15, absent: 10, late: 5 },
-  ];
 
   const handlePing = async () => {
     const DEVICE_ID = "esp32-EC:E3:34:BF:CD:C0";
@@ -236,7 +240,7 @@ const Dashboard = () => {
         <div className="chart-container">
           <h3>📈 Thống kê điểm danh tuần qua</h3>
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={dataChart}
+            <BarChart data={chartData}
                 margin={{
                 top: 40,
                 right: 30,
