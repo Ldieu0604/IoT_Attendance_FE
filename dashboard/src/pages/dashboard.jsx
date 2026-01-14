@@ -206,8 +206,9 @@ const Dashboard = () => {
       return 'Không thể điều khiển';
   };
 
+
   if (loading) {
-    return <div style={{padding: '20px'}}>⏳ Đang tải dữ liệu Dashboard...</div>;
+      return <div className="dashboard-container" style={{textAlign: 'center', paddingTop: '50px'}}>⏳ Đang tải dữ liệu ...</div>;
   }
 
   return (
