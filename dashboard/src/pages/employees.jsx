@@ -7,16 +7,12 @@ import {
     deleteEmployee, 
     setupFingerprint, 
     deleteFingerprint,
-    getFingerprints,
-    checkEnrollStatus
+    getFingerprints
 } from '../services/api';
-
-import { useRef } from 'react';
-
 
 const Employees = () => {
   const DEFAULT_DEVICE_ID = "esp32-EC:E3:34:BF:CD:C0";
-  const pollingRef = useRef(null);
+  
   // --- STATE QUẢN LÝ ---
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true); 
@@ -61,13 +57,8 @@ const Employees = () => {
   }, []);
 
   useEffect(() => {
-  return () => {
-    if (pollingRef.current) {
-      clearInterval(pollingRef.current);
-    }
-  };
-}, []);
-
+    fetchData();
+  }, [fetchData]);
 
   const formatDateForInput = (isoDateString) => {
     if (!isoDateString) return '';
@@ -177,65 +168,33 @@ const Employees = () => {
 
   const handleToggleFinger = async (id) => {
       if (openEmpId === id) {
-  if (pollingRef.current) {
-    clearInterval(pollingRef.current);
-    pollingRef.current = null;
-  }
-  setScanStep(0);
-}
+          setOpenEmpId(null);
+          setFingerList([]); 
+          setScanStep(0); // Reset trạng thái scan khi đóng
+      } else {
+          setOpenEmpId(id);
+          setScanStep(0); 
+          await fetchFingerprints(id);
+      }
   };
 
-  const startPollingEnrollStatus = (empId, fingerId) => {
-  pollingRef.current = setInterval(async () => {
+  const handleStartScan = async (empId) => {
+    setScanStep(1); 
     try {
-      const res = await checkEnrollStatus(DEFAULT_DEVICE_ID, fingerId);
-      console.log("Enroll status:", res);
-
-      if (res.status === 'pending' || res.status === 'not_found') {
-        setScanStep(1); // đang quét
+      await setupFingerprint(DEFAULT_DEVICE_ID, empId); 
+      setScanStep(2); 
+      await fetchFingerprints(empId);
+      alert("Đăng ký vân tay thành công!"); 
+    } catch (error) {
+      console.error(error);
+      if (error.message === "DUPLICATE_FINGER") {
+          alert("CẢNH BÁO: Ngón tay này ĐÃ CÓ trong hệ thống! Vui lòng dùng ngón khác.");
+      } else {
+          alert("Lỗi: " + (error.response?.data?.message || error.message));
       }
-
-      if (res.status === 'success') {
-        clearInterval(pollingRef.current);
-        pollingRef.current = null;
-
-        setScanStep(2);
-        await fetchFingerprints(empId);
-      }
-
-      if (res.status === 'failed' || res.status === 'unknown') {
-        clearInterval(pollingRef.current);
-        pollingRef.current = null;
-
-        setScanStep(3);
-      }
-
-    } catch (err) {
-      console.error("Polling error:", err);
+      setScanStep(3); 
     }
-  }, 3000);
-};
-
-
- const handleStartScan = async (empId) => {
-  setScanStep(1); // đang quét
-  try {
-    const res = await setupFingerprint(DEFAULT_DEVICE_ID, empId);
-
-    const fingerId = res?.finger_id || res?.id;
-    if (!fingerId) {
-      throw new Error("Không lấy được ID vân tay từ Backend");
-    }
-
-    startPollingEnrollStatus(empId, fingerId);
-
-  } catch (error) {
-    console.error(error);
-    setScanStep(3);
-    alert(error.response?.data?.message || error.message);
-  }
-};
-
+  };
 
   const handleDeleteFinger = async (empId, fingerId) => {
       if(window.confirm("Bạn có chắc chắn muốn xóa vân tay này?")) {
