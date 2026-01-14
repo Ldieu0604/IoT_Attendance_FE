@@ -301,20 +301,34 @@ export const getHistory = async (userId, month, year) => {
     }
 };
 
-export const getSalaryStats = async (month, year) => {
+export const getSalaryConfigs = async (year, month) => {
     try {
+        // Swagger: GET /api/v1/employees/salary?year=2026&month=1
         const response = await api.get('/api/v1/employees/salary', {
             params: {
                 year: year,
                 month: month
             }
         });
-        return response.data;
+        
+        // Kiểm tra dữ liệu trả về
+        if (Array.isArray(response.data)) {
+            return response.data;
+        } 
+        // Trường hợp backend trả về object bọc ngoài (VD: { data: [...] })
+        else if (response.data && Array.isArray(response.data.data)) {
+            return response.data.data;
+        }
+
+        console.warn("API lương trả về định dạng lạ:", response.data);
+        return [];
     } catch (error) {
-        console.error("Lỗi lấy bảng lương:", error);
-        return {employees: []};
+        console.error("Lỗi lấy cấu hình lương:", error);
+        return [];
     }
-}; export const getDashboardStats = async () => {
+};
+
+export const getDashboardStats = async () => {
     try {
         // Gọi API: GET /api/v1/employees/dashboard/stats
         const response = await api.get('/api/v1/employees/dashboard/stats');

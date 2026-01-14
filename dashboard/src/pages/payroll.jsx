@@ -2,43 +2,46 @@ import React, { useState, useEffect } from 'react';
 import './payroll.css';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { getEmployees, getDailyAttendance } from '../services/api';
+import { getEmployees, getDailyAttendance, getSalaryConfigs } from '../services/api';
 
 const Payroll = () => {
   const [payrollList, setPayrollList] = useState([]);
+  const [salaryConfigs, setSalaryConfigs] = useState([]); // ✅ State lưu bảng lương từ API
   
-  // Sửa lỗi 1: Dùng đúng tên biến state
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [loading, setLoading] = useState(false);
 
-  // --- 1. LOGIC TÍNH TOÁN "GẮT GAO" ---
-
-  // Kiểm tra công: Check-in <= 9h và Check-out >= 17h
-  const isValidWorkDay = (checkInStr, checkOutStr) => {
-      if (!checkInStr || !checkOutStr) return false;
-      return checkInStr <= "09:00:00" && checkOutStr >= "17:00:00";
-  };
-
-  // Kiểm tra OT: Check-out >= 18h
-  const isOTDay = (checkOutStr) => {
-      if (!checkOutStr) return false;
-      return checkOutStr >= "18:00:00";
-  };
-
-  // Format tiền tệ
+  // --- 1. CÁC HÀM LOGIC ---
+  const isValidWorkDay = (inTime, outTime) => inTime && outTime && inTime <= "09:00:00" && outTime >= "17:00:00";
+  const isOTDay = (outTime) => outTime && outTime >= "18:00:00";
+  const roundToThousand = (num) => Math.round(num / 1000) * 1000;
+  
   const formatCurrency = (amount) => {
-    let value = amount ? Number(amount) : 0;
-    value = Math.round(value); 
-    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
+    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
   };
 
-  // --- 2. TÍNH TOÁN DỮ LIỆU ---
+  // --- 2. GỌI API LẤY BẢNG LƯƠNG ---
+  useEffect(() => {
+      const fetchConfigs = async () => {
+          const data = await getSalaryConfigs(selectedYear, selectedMonth);
+          
+          if (Array.isArray(data)) {
+              setSalaryConfigs(data);
+          } else {
+              setSalaryConfigs([]);
+          }
+      };
+      
+      fetchConfigs();
+  }, [selectedMonth, selectedYear]);
+
+
+  // --- 3. TÍNH TOÁN DỮ LIỆU ---
   useEffect(() => {
     const calculateSalary = async () => {
         setLoading(true);
         try {
-            // Lấy dữ liệu thô để tự tính (Thay vì lấy sẵn từ getSalaryStats)
             const [empRes, logRes] = await Promise.all([
                 getEmployees(),
                 getDailyAttendance(null, null, 0, 3000) 
@@ -47,37 +50,41 @@ const Payroll = () => {
             const employees = Array.isArray(empRes) ? empRes : [];
             const logs = Array.isArray(logRes) ? logRes : [];
 
-            // Lọc log theo tháng đang chọn
+            // Lọc log theo tháng
             const currentMonthLogs = logs.filter(log => {
                 if (!log.work_date) return false;
-                const logDate = new Date(log.work_date);
-                return logDate.getMonth() + 1 === parseInt(selectedMonth) && 
-                       logDate.getFullYear() === parseInt(selectedYear);
+                const d = new Date(log.work_date);
+                return d.getMonth() + 1 === parseInt(selectedMonth) && 
+                       d.getFullYear() === parseInt(selectedYear);
             });
 
-            // Map dữ liệu và Tính tiền
+            // Tính toán
             const calculatedData = employees.map(emp => {
                 const empLogs = currentMonthLogs.filter(l => l.employee_id === emp.id);
-
-                // A. Đếm ngày công chuẩn (Logic mới)
                 const validDays = empLogs.filter(log => isValidWorkDay(log.check_in, log.check_out)).length;
-
-                // B. Đếm ngày OT (Logic mới)
                 const otDays = empLogs.filter(log => isOTDay(log.check_out)).length;
 
-                // C. Tính tiền
-                const STANDARD_DAYS = 22; // Công chuẩn
-                const baseSalary = Number(emp.base_salary || 5000000);
-                const otRateDay = Number(emp.ot_rate || 200000); // Giả sử 200k/ngày OT
+                // 🔥 LOGIC QUAN TRỌNG NHẤT Ở ĐÂY 🔥
+                // Tìm cấu hình lương khớp với chức vụ nhân viên
+                const config = salaryConfigs.find(c => c.position === emp.position);
 
-                const salaryPerDay = baseSalary / STANDARD_DAYS;
-                const totalSalary = (validDays * salaryPerDay) + (otDays * otRateDay);
+                // Lấy lương từ API (Nếu ko có thì = 0)
+                const baseSalary = config ? Number(config.monthly_salary) : 0;
+                const otRate = config ? Number(config.bonus_salary) : 0;
+
+                const STANDARD_DAYS = 22; 
+                let totalSalary = 0;
+                if (STANDARD_DAYS > 0) {
+                    const salaryPerDay = baseSalary / STANDARD_DAYS;
+                    totalSalary = (validDays * salaryPerDay) + (otDays * otRate);
+                }
 
                 return {
                     ...emp,
                     valid_days: validDays,
                     ot_days: otDays,
-                    total_salary_estimated: Math.round(totalSalary)
+                    base_salary_display: baseSalary, // Dùng biến này để hiển thị
+                    total_salary_final: roundToThousand(totalSalary)
                 };
             });
 
@@ -90,35 +97,32 @@ const Payroll = () => {
         }
     };
 
-    calculateSalary();
-  }, [selectedMonth, selectedYear]); // Chạy lại khi đổi tháng/năm
+    // Chỉ tính khi đã có config lương hoặc load lần đầu
+    if (salaryConfigs.length > 0 || loading === false) {
+        calculateSalary();
+    }
+  }, [selectedMonth, selectedYear, salaryConfigs]); // Chạy lại khi config thay đổi
 
-  // --- 3. XUẤT PDF ---
-  const removeVietnameseTones = (str) => {
-    if (!str) return '';
-    return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D');
-  }
+  // --- 4. XUẤT PDF ---
+  const removeVietnameseTones = (str) => str ? str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D') : '';
 
   const handleExportPDF = () => {
     const doc = new jsPDF();
     doc.text(`Bang Luong Thang ${selectedMonth}/${selectedYear}`, 14, 15);
-
     autoTable(doc, {
       startY: 20,
-      head: [['Ma NV', 'Ho Ten', 'Chuc Vu', 'Ngay Cong', 'Ngay OT', 'Luong Cung', 'Thuc Nhan']],
+      head: [['Ma NV', 'Ho Ten', 'Chuc Vu', 'Cong', 'OT', 'Luong Cung', 'Thuc Nhan']],
       body: payrollList.map(emp => [
         emp.emp_code,
         removeVietnameseTones(emp.full_name),
         emp.position,
-        `${emp.valid_days}/22`,     // Dữ liệu đã tính toán
-        `${emp.ot_days} ngay`,      // Dữ liệu đã tính toán
-        formatCurrency(emp.base_salary), 
-        formatCurrency(emp.total_salary_estimated)
+        `${emp.valid_days}/22`,     
+        `${emp.ot_days}`,      
+        formatCurrency(emp.base_salary_display), 
+        formatCurrency(emp.total_salary_final)
       ]),
       theme: 'grid',
-      headStyles: { fillColor: [22, 160, 133] },
     });
-
     doc.save(`Bang_Luong_T${selectedMonth}_${selectedYear}.pdf`);
   };
 
@@ -153,16 +157,15 @@ const Payroll = () => {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan="7" style={{textAlign:'center', padding: 20}}>⏳ Đang tính toán lại lương...</td></tr>
+              <tr><td colSpan="7" style={{textAlign:'center', padding: 20}}>⏳ Đang tính toán...</td></tr>
             ) : (
                 payrollList.length > 0 ? (
                     payrollList.map((emp, index) => (
-                        <tr key={emp.id || index}>
+                        <tr key={index}>
                             <td>{emp.emp_code}</td>
                             <td><strong>{emp.full_name}</strong></td>
-                            <td><span className={`badge-pos ${emp.position}`}>{emp.position}</span></td>
+                            <td><span className={`badge-pos ${emp.position?.replace(/\s/g, '')}`}>{emp.position}</span></td>
                             
-                            {/* Ngày công */}
                             <td className="text-center">
                                 <span style={{fontWeight:'bold', color: (emp.valid_days) < 22 ? '#ef4444' : '#10b981'}}>
                                     {emp.valid_days}
@@ -170,22 +173,21 @@ const Payroll = () => {
                                 <span style={{color:'#888', fontSize:'0.8em'}}>/22</span>
                             </td>
 
-                            {/* Ngày OT */}
                             <td className="text-center" style={{color: '#d97706', fontWeight:'bold'}}>
-                                {emp.ot_days > 0 ? `+${emp.ot_days} ngày` : '-'}
+                                {emp.ot_days > 0 ? `+${emp.ot_days}` : '-'}
                             </td>
 
-                            {/* Lương cứng */}
-                            <td className="text-right">{formatCurrency(emp.base_salary)}</td>
+                            {/* HIỂN THỊ LƯƠNG TỪ API */}
+                            <td className="text-right">{formatCurrency(emp.base_salary_display)}</td>
                             
-                            {/* Tổng thực nhận */}
+                            {/* TỔNG THỰC NHẬN */}
                             <td className="text-right total-cell">
-                                {formatCurrency(emp.total_salary_estimated)}
+                                {formatCurrency(emp.total_salary_final)}
                             </td>
                         </tr>
                     ))
                 ) : (
-                    <tr><td colSpan="7" style={{textAlign:'center', padding: 20}}>Không có dữ liệu chấm công tháng này.</td></tr>
+                    <tr><td colSpan="7" style={{textAlign:'center', padding: 20}}>Không có dữ liệu.</td></tr>
                 )
             )}
           </tbody>
