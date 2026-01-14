@@ -12,7 +12,7 @@ const Payroll = () => {
 
   const formatCurrency = (amount) => {
     let value = amount ? Number(amount) : 0;
-    value = Math.round(value);
+    value = Math.round(value / 1000) * 1000;
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
   };
 
@@ -51,7 +51,9 @@ const Payroll = () => {
   }
 
   const formatCurrencyPDF = (amount) => {
-    const value = amount ? Math.round(Number(amount)) : 0;
+    let value = amount ? Number(amount) : 0;
+
+    value = Math.round(value / 1000) * 1000;
     return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") + " VND";
   };
 

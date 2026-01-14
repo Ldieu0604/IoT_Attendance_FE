@@ -175,7 +175,9 @@ const Dashboard = () => {
         case 'OPEN':
             return <div className="door-status-badge open"><FaDoorOpen /> <span>Cửa Đang Mở</span></div>;
         default:
-            return null;
+            return <div className="door-status-badge unknown" style={{backgroundColor: '#94a3b8', color: 'white'}}>
+                <span>⚠️ Mất tín hiệu cửa</span>
+            </div>;
     }
   };
 
@@ -184,6 +186,7 @@ const Dashboard = () => {
       if (doorStatus === 'LOCKED') return 'Mở khóa cửa';
       if (doorStatus === 'UNLOCKED') return 'Đang mở cửa...';
       if (doorStatus === 'OPEN') return 'Khép cửa lại';
+      return 'Không thể điều khiển';
   };
 
   if (loading) {
