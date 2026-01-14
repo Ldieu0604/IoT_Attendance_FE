@@ -148,14 +148,14 @@ export const openDoor = async (deviceId = DEFAULT_DEVICE_ID) => {
     }
 };
 //check trạng thái enroll
-export const checkEnrollStatus = async (deviceId, fingerprintId) => {
+
+export const checkEnrollStatus = async (deviceId, fingerId) => {
     try {
-        // Lưu ý: Đường dẫn theo yêu cầu của bạn: /api/v1/devices/{deviceId}/...
-        const response = await api.get(`/api/v1/devices/${deviceId}/fingerprints/${fingerprintId}/enroll-status`);
+        const response = await api.get(`/api/v1/devices/${deviceId}/fingerprints/${fingerId}/enroll-status`);
         return response.data;
     } catch (error) {
         console.error("Lỗi check status:", error);
-        return { status: 'failed', message: error.message };
+        return { status: 'error', message: "Lỗi kết nối khi check status" };
     }
 };
 
