@@ -56,17 +56,25 @@ export const getEmployees = async () => {
 
 export const createEmployee = async (newEmployee) => {
     try {
-        // Mapping dữ liệu frontend sang backend (snake_case)
+        // 🔥 SỬA LẠI PAYLOAD: Mapping đúng tên biến từ formData
         const payload = {
-            full_name: newEmployee.fullName,
+            // Sửa .fullName -> .full_name (Vì bên Employees.jsx bạn đặt là full_name)
+            full_name: newEmployee.full_name, 
+            
             gender: newEmployee.gender,
             dob: newEmployee.dob,
             position: newEmployee.position,
-            phone_number: newEmployee.phoneNumber,
+            
+            // Sửa .phoneNumber -> .phone_number
+            phone_number: newEmployee.phone_number, 
+            
             email: newEmployee.email,
-            start_date: newEmployee.startDate || new Date().toISOString().split('T')[0]
+            
+            // Sửa .startDate -> .start_date
+            start_date: newEmployee.start_date || new Date().toISOString().split('T')[0]
         };
 
+        // Gửi request
         const response = await api.post('/api/v1/users/employees/create', payload);
         return response.data;
     } catch (error) {
