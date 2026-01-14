@@ -91,7 +91,7 @@ export const updateEmployee = async (empCode, updateData) => {
             active: updateData.active
         };
 
-        const response = await api.put(`/api/v1/employees/${empCode}/`, payload);
+        const response = await api.put(`/api/v1/users/employees/${empCode}/`, payload);
         return { success: true, data: response.data };
     } catch (error) {
         console.error("Lỗi cập nhật NV:", error);
@@ -103,7 +103,7 @@ export const updateEmployee = async (empCode, updateData) => {
 // Backend: DELETE /employees/{emp_code}
 export const deleteEmployee = async (empCode) => {
     try {
-        await api.delete(`/api/v1/employees/${empCode}/`);
+        await api.delete(`/api/v1/users/employees/${empCode}/`);
         return { success: true };
     } catch (error) {
         console.error("Lỗi xóa NV:", error);
