@@ -226,6 +226,16 @@ export const setupFingerprint = async (deviceId = DEFAULT_DEVICE_ID, empId) => {
         throw error;
     }
 };
+// Xóa vân tay
+export const deleteFingerprint = async (fingerId, deviceId = DEFAULT_DEVICE_ID) => {
+    try {
+        await api.delete(`/api/v1/devices/${deviceId}/fingerprints/${fingerId}`);
+        return { success: true };
+    } catch (error) {
+        console.error("Lỗi xóa vân tay:", error);
+        throw error;
+    }
+};
 
 // ==========================================
 // 4. ATTENDANCE (Chấm công)
