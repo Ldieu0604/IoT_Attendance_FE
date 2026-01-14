@@ -58,7 +58,6 @@ export const createEmployee = async (newEmployee) => {
     try {
         // Mapping dữ liệu frontend sang backend (snake_case)
         const payload = {
-            emp_code: newEmployee.empCode,
             full_name: newEmployee.fullName,
             gender: newEmployee.gender,
             dob: newEmployee.dob,
