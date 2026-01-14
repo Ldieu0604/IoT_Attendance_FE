@@ -176,7 +176,7 @@ export const getFingerprints = async (employeeId) => {
 // Thiết lập vân tay
 export const setupFingerprint = async (deviceId = DEFAULT_DEVICE_ID, empId) => {
     try {
-        
+        // 1. Gửi lệnh bắt đầu Enroll
         const response = await api.post(`/api/v1/devices/${deviceId}/fingerprints/enroll`, {
             employee_id: empId
         });
@@ -188,20 +188,28 @@ export const setupFingerprint = async (deviceId = DEFAULT_DEVICE_ID, empId) => {
 
         console.log("Bắt đầu quét cho Finger ID:", fingerId);
         const maxRetries = 30;
+        
+        // 2. Vòng lặp kiểm tra trạng thái (Polling)
         for (let i = 0; i < maxRetries; i++) {
-
             await new Promise(resolve => setTimeout(resolve, 2000));
 
             const statusRes = await checkEnrollStatus(deviceId, fingerId);
-            const status = statusRes.status; // Giả sử backend trả về trường 'status'
+            const status = statusRes.status; 
+            const msg = statusRes.message ? statusRes.message.toLowerCase() : "";
 
-            console.log(`Lần ${i+1}: Trạng thái ${status}`);
+            console.log(`Lần ${i+1}: Trạng thái ${status} - ${msg}`);
 
+            // TRƯỜNG HỢP THÀNH CÔNG
             if (status === 'success' || status === 'ok' || status === 'completed') {
                 return { success: true, message: "Đăng ký vân tay thành công!", data: statusRes };
             }
 
-            if (status === 'failed' || status === 'error' || status === 'timeout') {
+            // TRƯỜNG HỢP THẤT BẠI
+            if (status === 'failed' || status === 'error') {
+                if (msg.includes("duplicate") || msg.includes("exist") || msg.includes("tồn tại") || msg.includes("trùng")) {
+                    throw new Error("DUPLICATE_FINGER");
+                }
+                
                 throw new Error(statusRes.message || "Quét vân tay thất bại.");
             }
         }

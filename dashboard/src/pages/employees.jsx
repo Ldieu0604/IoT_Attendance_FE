@@ -37,13 +37,13 @@ const Employees = () => {
       active: true
   });
 
-  // --- STATE CHO VÂN TAY (QUAN TRỌNG) ---
-  const [fingerList, setFingerList] = useState([]); // Lưu danh sách vân tay của nhân viên đang mở
+  // --- STATE CHO VÂN TAY ---
+  const [fingerList, setFingerList] = useState([]); 
   const [loadingFinger, setLoadingFinger] = useState(false);
-  const [openEmpId, setOpenEmpId] = useState(null); // ID của nhân viên đang mở Popover
-  const [scanStep, setScanStep] = useState(0); // 0: Start, 1: Scanning, 2: Success, 3: Fail
+  const [openEmpId, setOpenEmpId] = useState(null); 
+  const [scanStep, setScanStep] = useState(0); 
   
-  // --- 1. HÀM TẢI DỮ LIỆU NHÂN VIÊN ---
+  // --- 1. HÀM TẢI DỮ LIỆU ---
   const fetchData = useCallback(async () => {
       setLoading(true);
       try {
@@ -51,7 +51,6 @@ const Employees = () => {
           setEmployees(data);
       } catch (error) {
           console.error("Lỗi tải dữ liệu:", error);
-          alert("Không thể tải danh sách nhân viên.");
       } finally {
           setLoading(false);
       }
@@ -134,9 +133,8 @@ const Employees = () => {
       }
   };
 
-  // --- 3. XỬ LÝ VÂN TAY (ĐÃ SỬA LOGIC) ---
+  // --- 3. XỬ LÝ VÂN TAY ---
 
-  // Hàm này gọi API lấy vân tay riêng lẻ
   const fetchFingerprints = async (empId) => {
       setLoadingFinger(true);
       try {
@@ -150,32 +148,33 @@ const Employees = () => {
       }
   };
 
-  // Khi bấm nút "Vân tay" -> Mở Popover VÀ Gọi API ngay lập tức
   const handleToggleFinger = async (id) => {
       if (openEmpId === id) {
-          // Đang mở thì đóng lại
           setOpenEmpId(null);
           setFingerList([]); 
+          setScanStep(0); // Reset trạng thái scan khi đóng
       } else {
-          // Đang đóng thì mở ra
           setOpenEmpId(id);
           setScanStep(0); 
-          // GỌI API LẤY DỮ LIỆU NGAY
           await fetchFingerprints(id);
       }
   };
 
   const handleStartScan = async (empId) => {
-    setScanStep(1); // Đang quét
+    setScanStep(1); 
     try {
       await setupFingerprint(DEFAULT_DEVICE_ID, empId); 
-      setScanStep(2); // Thành công
-      // Load lại danh sách vân tay ngay lập tức
+      setScanStep(2); 
       await fetchFingerprints(empId);
+      alert("Đăng ký vân tay thành công!"); 
     } catch (error) {
       console.error(error);
-      alert("Lỗi cài đặt vân tay: " + (error.response?.data?.message || error.message));
-      setScanStep(3); // Thất bại
+      if (error.message === "DUPLICATE_FINGER") {
+          alert("CẢNH BÁO: Ngón tay này ĐÃ CÓ trong hệ thống! Vui lòng dùng ngón khác.");
+      } else {
+          alert("Lỗi: " + (error.response?.data?.message || error.message));
+      }
+      setScanStep(3); 
     }
   };
 
@@ -183,7 +182,6 @@ const Employees = () => {
       if(window.confirm("Bạn có chắc chắn muốn xóa vân tay này?")) {
         try {
           await deleteFingerprint(fingerId, DEFAULT_DEVICE_ID);
-          // Load lại danh sách vân tay sau khi xóa
           await fetchFingerprints(empId);
         } catch (error) {
           alert("Lỗi xóa vân tay: " + error.message);
@@ -195,6 +193,7 @@ const Employees = () => {
     if (window.confirm("Bạn chắc chắn muốn xóa nhân viên này?")){
     try {
           await deleteEmployee(empCode); 
+          setOpenEmpId(null); // Đóng popover nếu đang mở đúng nhân viên này
           await fetchData();
       } catch (error) {
           alert("Lỗi xóa nhân viên: " + error.message);
@@ -251,19 +250,17 @@ const Employees = () => {
                         <button className="btn-action delete" onClick={() => handleDeleteEmployee(emp.emp_code)} style={{color:'red', background:'#fee2e2'}}>Xóa</button>
                     </div>
 
-                    {/* --- POPOVER VÂN TAY (Đã sửa logic render) --- */}
                     {isPopoverOpen && (
                         <div className="fingerprint-popover">
                             <div className="pop-header">
                                 <h4>Danh sách vân tay</h4>
-                                <button className="btn-close-pop" onClick={() => setOpenEmpId(null)}>×</button>
+                                <button className="btn-close-pop" onClick={() => handleToggleFinger(emp.id)}>×</button>
                             </div>
                             <div className="pop-body">
                                 {loadingFinger ? (
                                     <p className="loading-text">⏳ Đang tải...</p>
                                 ) : fingerList.length > 0 ? (
                                     <ul className="finger-list">
-                                        {/* SỬA: Map từ fingerList chứ không phải emp.fingerprints */}
                                         {fingerList.map((f, i) => (
                                             <li key={i}>
                                                 <span>Ngón ID: {f.finger_id || f.id}</span>
@@ -282,7 +279,6 @@ const Employees = () => {
                                         {scanStep === 1 && '📡 Đang quét trên thiết bị...'}
                                         {scanStep === 2 && '✅ Thành công!'}
                                         {scanStep === 3 && '❌ Thất bại.'}
-                                        {/* Nút reset để quét lại nếu lỗi */}
                                         {(scanStep === 2 || scanStep === 3) && 
                                             <button className="btn-reset-scan" onClick={() => setScanStep(0)}>Quay lại</button>
                                         }
