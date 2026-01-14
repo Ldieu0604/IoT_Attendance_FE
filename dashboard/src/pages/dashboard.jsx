@@ -79,19 +79,18 @@ const Dashboard = () => {
             const chartRes = await getDashboardStats();
             const rawData = Array.isArray(chartRes) ? chartRes : (chartRes?.data || []);
             console.log("Dữ liệu biểu đồ từ API:", rawData);
-            const mappedChartData = rawData.map(item => ({
-            // 1. Tạo trường 'name' cho trục X
-            // API có thể trả về 'date', 'day', 'work_date'... ta map hết về 'name'
-            name: item.name || item.day_name || item.date || item.work_date || 'N/A',
+
+            const formattedChartData = rawData.map(item => ({
+            // Trục X: Thử lấy các trường tên phổ biến
+            name: item.name || item.day_name || item.date || item.work_date || 'Ngày',
             
-            // 2. Ép kiểu về Số (Number) để vẽ cột (tránh lỗi nếu API trả về string "5")
-            // Map các trường tương ứng từ API về tên chuẩn: present, late, absent
+            // Các cột: Ép về kiểu Số (Number) để Recharts vẽ được
             present: Number(item.present || item.total_present || item.di_lam || 0),
             late: Number(item.late || item.total_late || item.di_muon || 0),
             absent: Number(item.absent || item.total_absent || item.vang || 0)
         }));
 
-        setChartData(mappedChartData);
+        setChartData(formattedChartData);
             if (chartRes && Array.isArray(chartRes)) {
             setChartData(chartRes);
         } else if (chartRes && chartRes.data && Array.isArray(chartRes.data)) {
@@ -254,17 +253,11 @@ const Dashboard = () => {
         <div className="chart-container">
           <h3>📈 Thống kê điểm danh tuần qua</h3>
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={chartData}
-                margin={{
-                top: 40,
-                right: 30,
-                left: 10,
-              }}
-            >
+            <BarChart data={chartData}margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} />
               <XAxis dataKey="name" axisLine={false} tickLine={false} dy={10}/>
-              <YAxis axisLine={false} tickLine={false} />
-              <Tooltip cursor={{fill: 'transparent'}} />
+              <YAxis axisLine={false} tickLine={false} allowDecimals={false} domain={[0, 'auto']} />
+              <Tooltip cursor={{fill: 'transparent'}} formatter={(value) => [value, "Nhân viên"]} />
               <Legend wrapperStyle={{ paddingTop: '20px' }} />
               <Bar dataKey="present" name="Đi làm" fill="#10b981" radius={[4, 4, 0, 0]} barSize={30} />
               <Bar dataKey="late" name="Đi muộn" fill="#f59e0b" radius={[4, 4, 0, 0]} barSize={30} />
