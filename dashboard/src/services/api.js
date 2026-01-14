@@ -161,12 +161,12 @@ export const checkEnrollStatus = async (deviceId, fingerprintId) => {
 export const getFingerprints = async (employeeId) => {
     const deviceId = DEFAULT_DEVICE_ID;
     try {
-        const response = await api.get(`/api/v1/devices/${deviceId}/fingerprints`);
-        const allFingerprints = Array.isArray(response.data) ? response.data : [];
-
-        const userFingerprints = allFingerprints.filter(fp => fp.employee_id === employeeId);
-        
-        return userFingerprints;
+        const response = await api.get(`/api/v1/devices/${deviceId}/fingerprints`, {
+            params: { 
+                employee_id: employeeId 
+            }
+        });
+        return Array.isArray(response.data) ? response.data : [];
     } catch (error) {
         console.error("Lỗi lấy danh sách vân tay:", error);
         return [];
@@ -176,20 +176,30 @@ export const getFingerprints = async (employeeId) => {
 // Thiết lập vân tay
 export const setupFingerprint = async (deviceId = DEFAULT_DEVICE_ID, empId) => {
     try {
-        // 1. Gửi lệnh bắt đầu Enroll
+        console.log(`📡 Đang gửi lệnh Enroll cho NV: ${empId} tới thiết bị: ${deviceId}`);
+
+        // 1. Gửi lệnh Enroll
         const response = await api.post(`/api/v1/devices/${deviceId}/fingerprints/enroll`, {
             employee_id: empId
         });
-        const fingerId = response.data.finger_id || response.data.id; 
+
+        console.log("Kết quả từ Backend (Enroll):", response.data);
+
+        // 2. Lấy Finger ID (Xử lý nhiều trường hợp cấu trúc JSON)
+        // Ưu tiên 1: response.data.finger_id
+        // Ưu tiên 2: response.data.id
+        // Ưu tiên 3: response.data.data.finger_id (Nếu backend bọc trong object 'data')
+        const fingerId = response.data.finger_id || response.data.id || response.data?.data?.finger_id || response.data?.data?.id;
 
         if (!fingerId) {
-            throw new Error("Không lấy được ID vân tay từ Backend.");
+            console.error("Lỗi: Backend không trả về ID. Response:", response.data);
+            throw new Error("Không lấy được ID vân tay từ Backend. Hãy kiểm tra Console (F12).");
         }
 
-        console.log("Bắt đầu quét cho Finger ID:", fingerId);
-        const maxRetries = 30;
-        
-        // 2. Vòng lặp kiểm tra trạng thái (Polling)
+        console.log("Lấy được Finger ID:", fingerId);
+
+        // 3. Vòng lặp kiểm tra trạng thái (Polling)
+        const maxRetries = 30; // Chờ tối đa 60s
         for (let i = 0; i < maxRetries; i++) {
             await new Promise(resolve => setTimeout(resolve, 2000));
 
@@ -197,19 +207,16 @@ export const setupFingerprint = async (deviceId = DEFAULT_DEVICE_ID, empId) => {
             const status = statusRes.status; 
             const msg = statusRes.message ? statusRes.message.toLowerCase() : "";
 
-            console.log(`Lần ${i+1}: Trạng thái ${status} - ${msg}`);
+            console.log(`Lần ${i+1}: Trạng thái ${status}`);
 
-            // TRƯỜNG HỢP THÀNH CÔNG
             if (status === 'success' || status === 'ok' || status === 'completed') {
-                return { success: true, message: "Đăng ký vân tay thành công!", data: statusRes };
+                return { success: true, message: "Đăng ký thành công!", data: statusRes };
             }
 
-            // TRƯỜNG HỢP THẤT BẠI
             if (status === 'failed' || status === 'error') {
-                if (msg.includes("duplicate") || msg.includes("exist") || msg.includes("tồn tại") || msg.includes("trùng")) {
+                if (msg.includes("duplicate") || msg.includes("exist") || msg.includes("trùng")) {
                     throw new Error("DUPLICATE_FINGER");
                 }
-                
                 throw new Error(statusRes.message || "Quét vân tay thất bại.");
             }
         }
@@ -219,18 +226,6 @@ export const setupFingerprint = async (deviceId = DEFAULT_DEVICE_ID, empId) => {
         throw error;
     }
 };
-
-// Xóa vân tay
-export const deleteFingerprint = async (fingerId, deviceId = DEFAULT_DEVICE_ID) => {
-    try {
-        await api.delete(`/api/v1/devices/${deviceId}/fingerprints/${fingerId}`);
-        return { success: true };
-    } catch (error) {
-        console.error("Lỗi xóa vân tay:", error);
-        throw error;
-    }
-};
-
 
 // ==========================================
 // 4. ATTENDANCE (Chấm công)
