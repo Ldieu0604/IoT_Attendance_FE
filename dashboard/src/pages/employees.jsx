@@ -6,11 +6,14 @@ import {
     updateEmployee, 
     deleteEmployee, 
     setupFingerprint, 
-    deleteFingerprint
+    deleteFingerprint,
+    getFingerprints
 } from '../services/api';
 
 const Employees = () => {
   const DEFAULT_DEVICE_ID = "esp32-EC:E3:34:BF:CD:C0";
+  
+  // --- STATE QUẢN LÝ ---
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true); 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -18,7 +21,7 @@ const Employees = () => {
   // --- STATE CHO MODAL FORM ---
   const [showModal, setShowModal] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
-  const [createdUser, setCreatedUser] = useState(null); // Lưu thông tin acc vừa tạo để hiển thị
+  const [createdUser, setCreatedUser] = useState(null);
 
   // Dữ liệu Form
   const [formData, setFormData] = useState({
@@ -34,11 +37,13 @@ const Employees = () => {
       active: true
   });
 
-  // --- STATE CHO VÂN TAY ---
-  const [openEmpId, setOpenEmpId] = useState(null); 
-  const [scanStep, setScanStep] = useState(0);
+  // --- STATE CHO VÂN TAY (QUAN TRỌNG) ---
+  const [fingerList, setFingerList] = useState([]); // Lưu danh sách vân tay của nhân viên đang mở
+  const [loadingFinger, setLoadingFinger] = useState(false);
+  const [openEmpId, setOpenEmpId] = useState(null); // ID của nhân viên đang mở Popover
+  const [scanStep, setScanStep] = useState(0); // 0: Start, 1: Scanning, 2: Success, 3: Fail
   
-  // --- 1. HÀM TẢI DỮ LIỆU (Dùng useCallback để tái sử dụng) ---
+  // --- 1. HÀM TẢI DỮ LIỆU NHÂN VIÊN ---
   const fetchData = useCallback(async () => {
       setLoading(true);
       try {
@@ -59,11 +64,10 @@ const Employees = () => {
   const formatDateForInput = (isoDateString) => {
     if (!isoDateString) return '';
     const date = new Date(isoDateString);
-    // Lấy YYYY-MM-DD
     return date.toISOString().split('T')[0];
   };
 
-  // --- 2. CÁC HÀM ĐIỀU KHIỂN TRẠNG THÁI (Mutual Exclusion) ---
+  // --- 2. XỬ LÝ FORM CRUD ---
 
   const handleOpenAdd = () => {
       setCreatedUser(null);
@@ -76,14 +80,13 @@ const Employees = () => {
           dob: '',
           phone_number: '',
           email: '',
-          start_date: new Date().toISOString().split('T')[0], // Mặc định hôm nay
+          start_date: new Date().toISOString().split('T')[0],
           position: 'Dev Mobile',
           active: true
       });
       setShowModal(true);
   };
 
-  // Mở form sửa
   const handleOpenEdit = (emp) => {
       setCreatedUser(null);
       setIsEditMode(true);
@@ -103,22 +106,17 @@ const Employees = () => {
       setShowModal(true);
   };
 
-  // Submit form (Chung cho cả Thêm và Sửa)
   const handleSubmit = async (e) => {
       if (e) e.preventDefault();
       if (isSubmitting) return;
       setIsSubmitting(true);
       try {
           if (isEditMode) {
-              // --- UPDATE ---
               await updateEmployee(formData.emp_code, formData);
               alert("Cập nhật thành công!");
           } else {
-              // --- CREATE ---
               const res = await createEmployee(formData);
-              // Giả sử API trả về: { data: { username: '...', password: '...', emp_code: '...' } }
               const newUser = res.data || res; 
-
               if (newUser) {
                   setCreatedUser(newUser); 
               } else {
@@ -130,32 +128,54 @@ const Employees = () => {
           else if(!createdUser) setShowModal(false);
       } catch (error) {
           console.error(error);
-          alert("Có lỗi xảy ra, vui lòng thử lại." + (error.response?.data?.message || error.message));
+          alert("Có lỗi xảy ra: " + (error.response?.data?.message || error.message));
       } finally {
           setIsSubmitting(false);
       }
   };
 
-  // --- 3. XỬ LÝ VÂN TAY ---
-  const handleToggleFinger = (id) => {
+  // --- 3. XỬ LÝ VÂN TAY (ĐÃ SỬA LOGIC) ---
+
+  // Hàm này gọi API lấy vân tay riêng lẻ
+  const fetchFingerprints = async (empId) => {
+      setLoadingFinger(true);
+      try {
+          const data = await getFingerprints(empId);
+          setFingerList(Array.isArray(data) ? data : []);
+      } catch (error) {
+          console.error(error);
+          setFingerList([]);
+      } finally {
+          setLoadingFinger(false);
+      }
+  };
+
+  // Khi bấm nút "Vân tay" -> Mở Popover VÀ Gọi API ngay lập tức
+  const handleToggleFinger = async (id) => {
       if (openEmpId === id) {
+          // Đang mở thì đóng lại
           setOpenEmpId(null);
+          setFingerList([]); 
       } else {
+          // Đang đóng thì mở ra
           setOpenEmpId(id);
           setScanStep(0); 
+          // GỌI API LẤY DỮ LIỆU NGAY
+          await fetchFingerprints(id);
       }
   };
 
   const handleStartScan = async (empId) => {
-    setScanStep(1); 
+    setScanStep(1); // Đang quét
     try {
       await setupFingerprint(DEFAULT_DEVICE_ID, empId); 
-      setScanStep(2); 
-      await fetchData(); 
+      setScanStep(2); // Thành công
+      // Load lại danh sách vân tay ngay lập tức
+      await fetchFingerprints(empId);
     } catch (error) {
       console.error(error);
       alert("Lỗi cài đặt vân tay: " + (error.response?.data?.message || error.message));
-      setScanStep(3); 
+      setScanStep(3); // Thất bại
     }
   };
 
@@ -163,7 +183,8 @@ const Employees = () => {
       if(window.confirm("Bạn có chắc chắn muốn xóa vân tay này?")) {
         try {
           await deleteFingerprint(fingerId, DEFAULT_DEVICE_ID);
-          await fetchData(); // Load lại list
+          // Load lại danh sách vân tay sau khi xóa
+          await fetchFingerprints(empId);
         } catch (error) {
           alert("Lỗi xóa vân tay: " + error.message);
         }
@@ -181,6 +202,7 @@ const Employees = () => {
     }
   };
 
+  // --- RENDER ---
   if (loading) {
       return <div className="page-container" style={{textAlign: 'center', paddingTop: '50px'}}>⏳ Đang tải dữ liệu nhân viên...</div>;
   }
@@ -207,7 +229,6 @@ const Employees = () => {
           <tbody>
             {employees.length > 0 ? employees.map((emp) => {
               const isPopoverOpen = openEmpId === emp.id;
-
               const isActive = emp.active !== false;
 
               return (
@@ -218,7 +239,7 @@ const Employees = () => {
                   <td>{emp.position}</td>
                   <td><span className={`status-badge ${isActive ? 'active' : 'inactive'}`}>{isActive ? 'Đang làm' : 'Đã nghỉ'}</span></td>
                   
-                  <td style={{position: 'relative'}}> {/* Quan trọng cho Popover */}
+                  <td style={{position: 'relative'}}> 
                     <div className="action-buttons">
                         <button className="btn-action edit" onClick={() => handleOpenEdit(emp)}>Sửa</button>
                         
@@ -230,7 +251,7 @@ const Employees = () => {
                         <button className="btn-action delete" onClick={() => handleDeleteEmployee(emp.emp_code)} style={{color:'red', background:'#fee2e2'}}>Xóa</button>
                     </div>
 
-                    {/* --- POPOVER VÂN TAY--- */}
+                    {/* --- POPOVER VÂN TAY (Đã sửa logic render) --- */}
                     {isPopoverOpen && (
                         <div className="fingerprint-popover">
                             <div className="pop-header">
@@ -238,26 +259,33 @@ const Employees = () => {
                                 <button className="btn-close-pop" onClick={() => setOpenEmpId(null)}>×</button>
                             </div>
                             <div className="pop-body">
-                                {emp.fingerprints?.length > 0 ? (
+                                {loadingFinger ? (
+                                    <p className="loading-text">⏳ Đang tải...</p>
+                                ) : fingerList.length > 0 ? (
                                     <ul className="finger-list">
-                                        {emp.fingerprints.map((f, i) => (
+                                        {/* SỬA: Map từ fingerList chứ không phải emp.fingerprints */}
+                                        {fingerList.map((f, i) => (
                                             <li key={i}>
-                                                <span>Ngón #{f.finger_id}</span>
-                                                <span className="finger-date">{f.created_at ? new Date(f.created_at).toLocaleDateString('vi-VN') : 'Mới tạo'}</span>
-                                                <span className="delete-icon" onClick={() => handleDeleteFinger(emp.id, f.finger_id)}>Xóa</span>
+                                                <span>Ngón ID: {f.finger_id || f.id}</span>
+                                                <span className="finger-date">{f.created_at ? new Date(f.created_at).toLocaleDateString('vi-VN') : 'Đã lưu'}</span>
+                                                <span className="delete-icon" onClick={() => handleDeleteFinger(emp.id, f.finger_id || f.id)}>Xóa</span>
                                             </li>
                                         ))}
                                     </ul>
-                                ) : <p className="empty-text">Chưa có vân tay</p>}
+                                ) : <p className="empty-text">Chưa có vân tay nào.</p>}
                             </div>
                             <div className="pop-footer">
                                 {scanStep === 0 ? (
                                     <button className="btn-scan-full" onClick={() => handleStartScan(emp.id)}>+ Thêm Vân Tay</button>
                                 ) : (
                                     <div className={`scan-status step-${scanStep}`}>
-                                        {scanStep === 1 && 'Đang kết nối...'}
-                                        {scanStep === 2 && 'Thành công!'}
-                                        {scanStep === 3 && 'Thất bại.'}
+                                        {scanStep === 1 && '📡 Đang quét trên thiết bị...'}
+                                        {scanStep === 2 && '✅ Thành công!'}
+                                        {scanStep === 3 && '❌ Thất bại.'}
+                                        {/* Nút reset để quét lại nếu lỗi */}
+                                        {(scanStep === 2 || scanStep === 3) && 
+                                            <button className="btn-reset-scan" onClick={() => setScanStep(0)}>Quay lại</button>
+                                        }
                                     </div>
                                 )}
                             </div>
@@ -275,7 +303,7 @@ const Employees = () => {
         </table>
       </div> 
 
-      {/* --- MODAL FORM THÊM / SỬA --- */}
+      {/* --- MODAL FORM --- */}
       {showModal && !createdUser && (
         <div className="modal-overlay">
             <div className="modal-content">
@@ -367,7 +395,7 @@ const Employees = () => {
         </div>
       )}
 
-      {/* --- CREDENTIAL POPUP (HIỆN SAU KHI TẠO THÀNH CÔNG) --- */}
+      {/* --- CREDENTIAL POPUP --- */}
       {createdUser && (
           <div className="modal-overlay">
               <div className="credential-card">

@@ -158,6 +158,21 @@ export const checkEnrollStatus = async (deviceId, fingerprintId) => {
     }
 };
 
+export const getFingerprints = async (employeeId) => {
+    const deviceId = DEFAULT_DEVICE_ID;
+    try {
+        const response = await api.get(`/api/v1/devices/${deviceId}/fingerprints`);
+        const allFingerprints = Array.isArray(response.data) ? response.data : [];
+
+        const userFingerprints = allFingerprints.filter(fp => fp.employee_id === employeeId);
+        
+        return userFingerprints;
+    } catch (error) {
+        console.error("Lỗi lấy danh sách vân tay:", error);
+        return [];
+    }
+};
+
 // Thiết lập vân tay
 export const setupFingerprint = async (deviceId = DEFAULT_DEVICE_ID, empId) => {
     try {
