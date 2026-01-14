@@ -174,7 +174,7 @@ export const setupFingerprint = async (deviceId = DEFAULT_DEVICE_ID, empId) => {
         console.log("Bắt đầu quét cho Finger ID:", fingerId);
         const maxRetries = 30;
         for (let i = 0; i < maxRetries; i++) {
-            // Chờ 1 giây trước mỗi lần gọi
+            
             await new Promise(resolve => setTimeout(resolve, 2000));
 
             const statusRes = await checkEnrollStatus(deviceId, fingerId);
