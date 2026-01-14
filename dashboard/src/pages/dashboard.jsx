@@ -98,18 +98,8 @@ const Dashboard = () => {
         }));
 
         console.log("Dữ liệu sau khi Map:", formattedChartData); // <-- Kiểm tra cái này
-
-        // QUAN TRỌNG: Phải set biến đã format, KHÔNG set rawData
         setChartData(formattedChartData);
-            if (chartRes && Array.isArray(chartRes)) {
-            setChartData(chartRes);
-        } else if (chartRes && chartRes.data && Array.isArray(chartRes.data)) {
-            // Trường hợp API trả về dạng { status: 'success', data: [...] }
-            setChartData(chartRes.data);
-        } else {
-            // Nếu API chưa có dữ liệu, dùng mảng rỗng hoặc dữ liệu mẫu tạm thời
-            setChartData([]);
-        }
+      
 
             // Lấy trạng thái thiết bị IoT
             const DEVICE_ID = "esp32-EC:E3:34:BF:CD:C0"; 
@@ -263,7 +253,7 @@ const Dashboard = () => {
         <div className="chart-container">
           <h3>📈 Thống kê điểm danh tuần qua</h3>
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={chartData}margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+            <BarChart data={chartData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} />
               <XAxis dataKey="name" axisLine={false} tickLine={false} dy={10}/>
               <YAxis axisLine={false} tickLine={false} allowDecimals={false} domain={[0, 'auto']} />
