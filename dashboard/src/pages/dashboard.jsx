@@ -78,9 +78,13 @@ const Dashboard = () => {
             const DEVICE_ID = "esp32-EC:E3:34:BF:CD:C0"; 
             const statusData = await getDeviceStatus(DEVICE_ID);
             
-            setDeviceConnected(true);
-            if (statusData && statusData.status) {
-                setDoorStatus(statusData.status.toUpperCase());
+            const isOnline = statusData?.status?.toLowerCase() === 'online';
+            setDeviceConnected(isOnline);
+
+            if (statusData && statusData.door_state) {
+                setDoorStatus(statusData.door_state.toUpperCase());
+            } else {
+                setDoorStatus('LOCKED');
             }
 
         } catch (error) {
@@ -113,9 +117,17 @@ const Dashboard = () => {
     const DEVICE_ID = "esp32-EC:E3:34:BF:CD:C0";
     try {
         alert("Đang kiểm tra kết nối tới ESP32...");
-        await getDeviceStatus(DEVICE_ID);
-        setDeviceConnected(true);
-        alert("Kết nối ổn định! Thiết bị đang Online.");
+        const data = await getDeviceStatus(DEVICE_ID);
+        
+        const isOnline = data?.status?.toLowerCase() === 'online';
+        setDeviceConnected(isOnline);
+
+        if (isOnline) {
+            alert("Kết nối ổn định! Thiết bị đang Online.");
+            if (data.door_state) setDoorStatus(data.door_state.toUpperCase());
+        } else {
+            alert("Thiết bị đang offline.");
+        }
     } catch (error) {
         console.error("Ping lỗi:", error); // Đã sửa lỗi no-unused-vars
         setDeviceConnected(false);

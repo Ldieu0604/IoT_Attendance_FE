@@ -91,7 +91,7 @@ export const updateEmployee = async (empCode, updateData) => {
             active: updateData.active
         };
 
-        const response = await api.put(`/api/v1/users/employees/${empCode}/`, payload);
+        const response = await api.put(`/api/v1/users/employees/${empCode}`, payload);
         return { success: true, data: response.data };
     } catch (error) {
         console.error("Lỗi cập nhật NV:", error);
@@ -102,7 +102,7 @@ export const updateEmployee = async (empCode, updateData) => {
 // Xóa nhân viên
 export const deleteEmployee = async (empCode) => {
     try {
-        await api.delete(`/api/v1/users/employees/${empCode}/`);
+        await api.delete(`/api/v1/users/employees/${empCode}`);
         return { success: true };
     } catch (error) {
         console.error("Lỗi xóa NV:", error);
@@ -174,7 +174,7 @@ export const setupFingerprint = async (deviceId = DEFAULT_DEVICE_ID, empId) => {
         console.log("Bắt đầu quét cho Finger ID:", fingerId);
         const maxRetries = 30;
         for (let i = 0; i < maxRetries; i++) {
-            
+
             await new Promise(resolve => setTimeout(resolve, 2000));
 
             const statusRes = await checkEnrollStatus(deviceId, fingerId);
