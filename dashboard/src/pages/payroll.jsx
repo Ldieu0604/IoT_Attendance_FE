@@ -97,10 +97,8 @@ const Payroll = () => {
         }
     };
 
-    // Chỉ tính khi đã có config lương hoặc load lần đầu
-    if (salaryConfigs.length > 0 || loading === false) {
-        calculateSalary();
-    }
+
+    calculateSalary();
   }, [selectedMonth, selectedYear, salaryConfigs]); // Chạy lại khi config thay đổi
 
   // --- 4. XUẤT PDF ---
