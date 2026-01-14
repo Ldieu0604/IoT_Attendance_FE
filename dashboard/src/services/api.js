@@ -254,16 +254,16 @@ export const getHistory = async (userId, month, year) => {
 
 export const getSalaryStats = async (month, year) => {
     try {
-        const response = await api.get('/api/v1/salary', {
+        const response = await api.get('/api/v1/employees/salary', {
             params: {
-                month: month,
-                year: year
+                year: year,
+                month: month
             }
         });
         return response.data;
     } catch (error) {
         console.error("Lỗi lấy bảng lương:", error);
-        return [];
+        return {employees: []};
     }
 }; 
 
