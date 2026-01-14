@@ -131,7 +131,7 @@ const DEFAULT_DEVICE_ID = "esp32-EC:E3:34:BF:CD:C0";
 // Lấy trạng thái cửa
 export const getDeviceStatus = async (deviceId = DEFAULT_DEVICE_ID) => {
     try {
-        const response = await api.get(`/api/v1/devices/devices/${deviceId}/status`);
+        const response = await api.get(`/api/v1/devices/${deviceId}/status`);
         return response.data;
     } catch (error) {
         console.error("Lỗi lấy trạng thái cửa:", error);
@@ -140,7 +140,7 @@ export const getDeviceStatus = async (deviceId = DEFAULT_DEVICE_ID) => {
 };
 export const openDoor = async (deviceId = DEFAULT_DEVICE_ID) => {
     try {
-        const response = await api.post(`/api/v1/devices/devices/${deviceId}/door/open`);
+        const response = await api.post(`/api/v1/devices/${deviceId}/door/open`);
         return { success: true, data: response.data };
     } catch (error) {
         console.error("Lỗi mở cửa:", error);
@@ -151,7 +151,7 @@ export const openDoor = async (deviceId = DEFAULT_DEVICE_ID) => {
 export const setupFingerprint = async (deviceId = DEFAULT_DEVICE_ID, empId) => {
     try {
         
-        const response = await api.post(`/api/v1/devices/devices/${deviceId}/fingerprints/enroll`, {
+        const response = await api.post(`/api/v1/devices/${deviceId}/fingerprints/enroll`, {
             employee_id: empId
         });
         return { success: true, message: "Vui lòng đặt tay lên cảm biến...", data: response.data };
@@ -164,7 +164,7 @@ export const setupFingerprint = async (deviceId = DEFAULT_DEVICE_ID, empId) => {
 // Xóa vân tay
 export const deleteFingerprint = async (fingerId, deviceId = DEFAULT_DEVICE_ID) => {
     try {
-        await api.delete(`/api/v1/devices/devices/${deviceId}/fingerprints/${fingerId}`);
+        await api.delete(`/api/v1/devices/${deviceId}/fingerprints/${fingerId}`);
         return { success: true };
     } catch (error) {
         console.error("Lỗi xóa vân tay:", error);
