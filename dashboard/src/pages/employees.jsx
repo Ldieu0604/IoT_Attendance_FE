@@ -106,32 +106,50 @@ const Employees = () => {
   };
 
   const handleSubmit = async (e) => {
-      if (e) e.preventDefault();
-      if (isSubmitting) return;
-      setIsSubmitting(true);
-      try {
-          if (isEditMode) {
-              await updateEmployee(formData.emp_code, formData);
-              alert("Cập nhật thành công!");
-          } else {
-              const res = await createEmployee(formData);
-              const newUser = res.data || res; 
-              if (newUser) {
-                  setCreatedUser(newUser); 
-              } else {
-                  alert("Thêm nhân viên thành công!");
-              }
-          }
-          await fetchData();
-          if(isEditMode) setShowModal(false); 
-          else if(!createdUser) setShowModal(false);
-      } catch (error) {
-          console.error(error);
-          alert("Có lỗi xảy ra: " + (error.response?.data?.message || error.message));
-      } finally {
-          setIsSubmitting(false);
-      }
-  };
+    if (e) e.preventDefault();
+    if (isSubmitting) return;
+    
+    setIsSubmitting(true);
+    try {
+        if (isEditMode) {
+            await updateEmployee(formData.emp_code, formData);
+            alert("Cập nhật thành công!");
+        } else {
+            const res = await createEmployee(formData);
+            const newUser = res.data || res;
+            if (newUser) {
+                setCreatedUser(newUser);
+            } else {
+                alert("Thêm nhân viên thành công!");
+            }
+        }
+        await fetchData();
+        if (isEditMode) setShowModal(false);
+        else if (!createdUser) setShowModal(false);
+
+    } catch (error) {
+        console.error("Lỗi Submit:", error);
+        
+        // --- ĐOẠN CODE BẮT LỖI THÔNG MINH ---
+        if (error.response) {
+            const status = error.response.status;
+            const msg = error.response.data?.message || "";
+
+            if (status === 500) {
+                alert("Lỗi Server (500): Có thể Email hoặc SĐT này ĐÃ TỒN TẠI trong hệ thống.\nVui lòng kiểm tra lại hoặc thử nhập thông tin khác.");
+            } else if (status === 422) {
+                alert("Lỗi Dữ liệu (422): Bạn đang gửi thừa hoặc thiếu trường thông tin. Hãy kiểm tra lại file api.js.");
+            } else {
+                alert(`Có lỗi xảy ra (${status}): ${msg}`);
+            }
+        } else {
+            alert("Lỗi kết nối: Không thể gọi đến Server. Hãy kiểm tra mạng hoặc Railway.");
+        }
+        // ------------------------------------
+    } finally {
+        setIsSubmitting(false);
+    }
+};
 
   // --- 3. XỬ LÝ VÂN TAY ---
 
