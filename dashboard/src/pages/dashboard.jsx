@@ -257,7 +257,7 @@ const Dashboard = () => {
               <CartesianGrid strokeDasharray="3 3" vertical={false} />
               <XAxis dataKey="name" axisLine={false} tickLine={false} dy={10}/>
               <YAxis axisLine={false} tickLine={false} allowDecimals={false} domain={[0, 'auto']} />
-              <Tooltip cursor={{fill: 'transparent'}} formatter={(value) => [value, "Nhân viên"]} />
+              <Tooltip cursor={{fill: 'transparent'}} />
               <Legend wrapperStyle={{ paddingTop: '20px' }} />
               <Bar dataKey="present" name="Đi làm" fill="#10b981" radius={[4, 4, 0, 0]} barSize={30} />
               <Bar dataKey="late" name="Đi muộn" fill="#f59e0b" radius={[4, 4, 0, 0]} barSize={30} />
