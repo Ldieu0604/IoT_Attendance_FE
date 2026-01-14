@@ -11,7 +11,8 @@ const Payroll = () => {
   const [loading, setLoading] = useState(false);
 
   const formatCurrency = (amount) => {
-    const value = amount ? Number(amount) : 0;
+    let value = amount ? Number(amount) : 0;
+    value = Math.round(value);
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
   };
 
@@ -50,7 +51,8 @@ const Payroll = () => {
   }
 
   const formatCurrencyPDF = (amount) => {
-    return (amount || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") + " VND";
+    const value = amount ? Math.round(Number(amount)) : 0;
+    return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") + " VND";
   };
 
   const handleExportPDF = () => {
