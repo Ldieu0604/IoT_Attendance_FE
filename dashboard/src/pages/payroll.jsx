@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import './payroll.css';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { getSalaryStats } from '../services/api'; // 1. Import API
+import { getSalaryStats } from '../services/api';
 
 const Payroll = () => {
   const [payrollList, setPayrollList] = useState([]);
@@ -21,7 +21,7 @@ const Payroll = () => {
     const fetchPayrollData = async () => {
         setLoading(true);
         try {
-            // Gọi API lấy dữ liệu đã tính toán từ Backend
+            
             const data = await getSalaryStats(month, year);
             
             if (Array.isArray(data)) {
@@ -38,7 +38,7 @@ const Payroll = () => {
     };
 
     fetchPayrollData();
-  }, [month, year]); // Chạy lại khi đổi tháng/năm
+  }, [month, year]);
 
   // Hàm xử lý tiếng Việt cho PDF
   const removeVietnameseTones = (str) => {
@@ -65,8 +65,8 @@ const Payroll = () => {
         emp.position,
         `${emp.work_days || 0}/30`,    // Số ngày công
         emp.overtime_hours || 0,       // Số giờ tăng ca
-        formatCurrencyPDF(emp.monthly_salary), // Lương cứng (khớp DB)
-        formatCurrencyPDF(emp.bonus_salary),   // Thưởng (khớp DB)
+        formatCurrencyPDF(emp.monthly_salary), // Lương cứng
+        formatCurrencyPDF(emp.bonus_salary),   // Thưởng
         formatCurrencyPDF(emp.total_salary)    // Tổng thực nhận
       ]),
       theme: 'grid',
