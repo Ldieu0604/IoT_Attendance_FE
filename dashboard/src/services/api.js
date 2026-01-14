@@ -68,7 +68,7 @@ export const createEmployee = async (newEmployee) => {
             start_date: newEmployee.startDate || new Date().toISOString().split('T')[0]
         };
 
-        const response = await api.post('/api/v1/employees/', payload);
+        const response = await api.post('/api/v1/users/employees/create', payload);
         return response.data;
     } catch (error) {
         console.error("Lỗi tạo NV:", error);
@@ -161,14 +161,34 @@ export const checkEnrollStatus = async (deviceId, fingerprintId) => {
 export const getFingerprints = async (employeeId) => {
     const deviceId = DEFAULT_DEVICE_ID;
     try {
+        console.log(`Đang gọi API lấy vân tay...`);
+        console.log(`URL: /api/v1/devices/${deviceId}/fingerprints`);
+        console.log(`Params: employee_id = ${employeeId}`);
+
         const response = await api.get(`/api/v1/devices/${deviceId}/fingerprints`, {
             params: { 
                 employee_id: employeeId 
             }
         });
-        return Array.isArray(response.data) ? response.data : [];
+
+        console.log("Kết quả Backend trả về:", response.data);
+
+        if (Array.isArray(response.data)) {
+            if (response.data.length === 0) {
+                console.warn("Backend trả về mảng rỗng (Có thể do sai DeviceID hoặc User này chưa có vân tay)");
+            }
+            return response.data;
+        } else {
+            console.error("Backend trả về dữ liệu không phải mảng:", response.data);
+            return [];
+        }
+
     } catch (error) {
-        console.error("Lỗi lấy danh sách vân tay:", error);
+        console.error("LỖI API getFingerprints:", error);
+        if (error.response) {
+            console.error("Status Code:", error.response.status); // Xem là lỗi 500 hay 404
+            console.error("Backend Message:", error.response.data);
+        }
         return [];
     }
 };

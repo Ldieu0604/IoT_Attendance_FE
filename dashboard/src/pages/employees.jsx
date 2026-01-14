@@ -276,9 +276,9 @@ const Employees = () => {
                                     <button className="btn-scan-full" onClick={() => handleStartScan(emp.id)}>+ Thêm Vân Tay</button>
                                 ) : (
                                     <div className={`scan-status step-${scanStep}`}>
-                                        {scanStep === 1 && '📡 Đang quét trên thiết bị...'}
-                                        {scanStep === 2 && '✅ Thành công!'}
-                                        {scanStep === 3 && '❌ Thất bại.'}
+                                        {scanStep === 1 && 'Đang quét trên thiết bị...'}
+                                        {scanStep === 2 && 'Thành công!'}
+                                        {scanStep === 3 && 'Thất bại.'}
                                         {(scanStep === 2 || scanStep === 3) && 
                                             <button className="btn-reset-scan" onClick={() => setScanStep(0)}>Quay lại</button>
                                         }
