@@ -281,7 +281,7 @@ const Employees = () => {
                                     <ul className="finger-list">
                                         {fingerList.map((f, i) => (
                                             <li key={i}>
-                                                <span>Ngón ID: {f.finger_id || f.id}</span>
+                                                <span>Ngón ID #{f.id}</span>
                                                 <span className="finger-date">{f.created_at ? new Date(f.created_at).toLocaleDateString('vi-VN') : 'Đã lưu'}</span>
                                                 <span className="delete-icon" onClick={() => handleDeleteFinger(emp.id, f.finger_id || f.id)}>Xóa</span>
                                             </li>
