@@ -77,23 +77,29 @@ const Dashboard = () => {
             });
 
             const chartRes = await getDashboardStats();
-            const rawData = Array.isArray(chartRes) ? chartRes : (chartRes?.data || []);
-            console.log("Dữ liệu biểu đồ từ API:", rawData);
 
-            const formattedChartData = rawData.map(item => ({
-            // 1. Trục X: API thường trả về 'date' hoặc 'work_date'
-            name: item.date || item.work_date || item.day_name || 'Ngày',
-            
-            // 2. Cột Đi làm (Xanh): SWAGGER TRẢ VỀ 'on_time' -> Map sang 'present'
-            present: Number(item.on_time || 0), 
-            
-            // 3. Cột Đi muộn (Vàng): SWAGGER TRẢ VỀ 'late'
+            const rawData = Array.isArray(chartRes) ? chartRes : (chartRes?.data || []);
+        
+        console.log("Dữ liệu thô:", rawData); // Kiểm tra xem log hiện đúng chưa
+
+        // --- MAP DỮ LIỆU TỪ API SANG FORMAT BIỂU ĐỒ ---
+        const formattedChartData = rawData.map(item => ({
+            // 1. Map 'date' từ API sang 'name' cho trục X
+            name: item.date, 
+
+            // 2. Map 'on_time' từ API sang 'present' (Cột xanh)
+            present: Number(item.on_time || 0),
+
+            // 3. Giữ nguyên 'late' (Cột vàng)
             late: Number(item.late || 0),
-            
-            // 4. Cột Vắng (Đỏ): SWAGGER TRẢ VỀ 'absent'
+
+            // 4. Giữ nguyên 'absent' (Cột đỏ)
             absent: Number(item.absent || 0)
         }));
 
+        console.log("Dữ liệu sau khi Map:", formattedChartData); // <-- Kiểm tra cái này
+
+        // QUAN TRỌNG: Phải set biến đã format, KHÔNG set rawData
         setChartData(formattedChartData);
             if (chartRes && Array.isArray(chartRes)) {
             setChartData(chartRes);
